@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">One-Step Addition or Subtraction Equations</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef7f4; color: #333; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ══ TOP HEADER ══ */
+.app-header {
+  background: white; border-bottom: 1px solid #dde8e4;
+  padding: 0 24px; height: 56px; display: flex; align-items: center;
+  gap: 16px; flex-shrink: 0; z-index: 100;
+}
+.app-header-title { font-size: 1.1rem; font-weight: 800; color: #1a2a1e; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-header-tabs { display: none; gap: 4px; } /* hidden in normal mode */
+.header-tab {
+  padding: 6px 18px; border-radius: 20px; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; border: none; background: transparent; color: #666; transition: all 0.2s;
+}
+.header-tab.active { background: white; box-shadow: 0 1px 6px rgba(0,0,0,.15); color: #1a2a1e; }
+.app-header-actions { display: flex; gap: 8px; align-items: center; }
+.hdr-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 0.83rem; font-weight: 700;
+  cursor: pointer; border: 2px solid transparent; transition: all 0.2s; white-space: nowrap;
+}
+.hdr-btn.edit-btn { background: white; color: #1a6e4a; border-color: #00a896; }
+.hdr-btn.edit-btn:hover { background: #e8f9f5; }
+.hdr-btn.edit-btn.active { background: #00a896; color: white; border-color: #00a896; }
+.hdr-btn.new-lesson-btn { background: #1a2a38; color: white; display: none; }
+.hdr-btn.new-lesson-btn:hover { background: #253848; }
+.edit-mode .hdr-btn.new-lesson-btn { display: inline-block; }
+
+/* Show Answers toggle */
+.show-answers-wrap { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; padding:4px 0; }
+.show-answers-wrap:hover .sa-label { color:#1a2a1e; }
+.sa-track { width:38px; height:22px; background:#d0d8d4; border-radius:11px; position:relative; transition:background .2s; flex-shrink:0; }
+.sa-track.on { background:#00a896; }
+.sa-thumb { width:16px; height:16px; background:white; border-radius:50%; position:absolute; top:3px; left:3px; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+.sa-track.on .sa-thumb { left:19px; }
+.sa-label { font-size:0.84rem; font-weight:600; color:#666; transition:color .2s; }
+
+/* Present button */
+.hdr-btn.present-btn { background:white; color:#3a4a5a; border-color:#c0ccd4; display:flex; align-items:center; gap:6px; }
+.hdr-btn.present-btn:hover { background:#f0f5f8; border-color:#8aaabb; }
+.present-icon { font-size:0.95rem; }
+
+/* Present mode */
+body.present-mode { overflow:hidden; }
+body.present-mode .app-header { background:#1a2a38; border-bottom-color:#2a3d50; padding:0 20px; }
+body.present-mode .app-header-title { display:none; }
+body.present-mode .app-header-actions { display:none; }
+body.present-mode .app-header-tabs { display:flex; flex:1; justify-content:center; }
+body.present-mode .header-tab { color:#aac; }
+body.present-mode .header-tab.active { background:#2a3d50; color:white; box-shadow:none; }
+body.present-mode .sidebar { display:none; }
+body.present-mode .main-scroll { padding:32px 60px 12px; }
+.present-exit-btn { display:none; background:none; border:1.5px solid #4a6070; color:#aac; border-radius:8px; padding:5px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.present-exit-btn:hover { background:#2a3d50; color:white; }
+body.present-mode .present-exit-btn { display:flex; align-items:center; gap:6px; }
+.present-exit-spacer { display:none; }
+body.present-mode .present-exit-spacer { display:block; width:100px; flex-shrink:0; }
+
+/* Show-answers banner on interactive slides */
+.show-answers-banner { background:#e8f4fc; border:1.5px solid #5ba4cf; border-radius:8px; padding:7px 14px; margin-bottom:14px; font-size:.82rem; color:#1a4a7a; font-weight:600; display:none; }
+body.show-answers-active .show-answers-banner { display:block; }
+
+/* ══ APP LAYOUT ══ */
+.app-layout { display: flex; flex: 1; overflow: hidden; }
+
+/* ══ SIDEBAR ══ */
+.sidebar {
+  width: 360px; min-width: 360px; background: white;
+  border-right: 1px solid #dde8e4; display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+}
+.sidebar-header {
+  background: #00a896; color: white; padding: 16px 18px; flex-shrink: 0;
+}
+.sidebar-header-label { font-size: 0.75rem; font-weight: 700; opacity: .75; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.sidebar-header-title { font-size: 0.98rem; font-weight: 700; line-height: 1.3; }
+
+.slide-list { flex: 1; overflow-y: auto; padding: 12px 10px; }
+.slide-list::-webkit-scrollbar { width: 4px; }
+.slide-list::-webkit-scrollbar-thumb { background: #c8ddd8; border-radius: 4px; }
+
+.slide-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  border-left: 3px solid transparent; margin-bottom: 2px;
+  transition: background 0.15s, border-color 0.15s; position: relative;
+}
+.slide-item:hover { background: #f0faf7; }
+.slide-item.active { background: #e6f7f3; border-left-color: #00a896; }
+.slide-item.active .slide-item-num { color: #00a896; font-weight: 800; }
+.slide-item.active .slide-item-title { color: #005a4a; }
+
+.slide-item-icon {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.slide-item-body { flex: 1; min-width: 0; }
+.slide-item-num  { font-size: 0.72rem; font-weight: 700; color: #999; margin-bottom: 1px; }
+.slide-item-title { font-size: 0.9rem; font-weight: 600; color: #2a3a30; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slide-item-type  { font-size: 0.75rem; color: #888; margin-top: 1px; }
+.slide-item-status { flex-shrink: 0; font-size: 1rem; }
+
+/* Edit mode slide item controls */
+.slide-item-edit { display: none; gap: 4px; }
+.edit-mode .slide-item:hover .slide-item-edit { display: flex; }
+.si-btn {
+  background: none; border: none; cursor: pointer; padding: 3px 5px;
+  border-radius: 5px; font-size: 0.78rem; opacity: .7; transition: all 0.15s;
+  color: #555;
+}
+.si-btn:hover { opacity: 1; }
+.si-btn.si-edit:hover { background: #d0eaf8; color: #1a5c8a; }
+.si-btn.si-del:hover  { background: #fde0e0; color: #c0392b; }
+.si-btn.si-hide:hover { background: #f0e8ff; color: #5a007a; }
+.slide-item.hidden-slide { opacity: .45; }
+.slide-item.hidden-slide .slide-item-title { text-decoration: line-through; }
+
+/* Insert strip between slides (edit mode) */
+.insert-item { display: none; justify-content: center; padding: 2px 12px; }
+.edit-mode .insert-item { display: flex; }
+.insert-btn {
+  font-size: 0.75rem; color: #00a896; background: none; border: 1.5px dashed #00a896;
+  border-radius: 12px; padding: 2px 14px; cursor: pointer; font-weight: 700; width: 100%;
+  transition: background 0.15s;
+}
+.insert-btn:hover { background: #e6f7f3; }
+
+.sidebar-footer { padding: 10px; border-top: 1px solid #e8f0ec; flex-shrink: 0; }
+.add-slide-card {
+  display: none; align-items: center; gap: 10px; background: #fffbe6;
+  border: 1.5px solid #ffc107; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+  transition: background 0.15s;
+}
+.edit-mode .add-slide-card { display: flex; }
+.add-slide-card:hover { background: #fff8d0; }
+.add-slide-card-icon { width: 32px; height: 32px; background: #ffc107; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.add-slide-card-text { flex: 1; font-size: 0.85rem; font-weight: 700; color: #7a5a00; }
+.add-slide-card-text span { display: block; font-weight: 400; font-size: 0.76rem; color: #a07000; }
+.add-slide-plus { background: #ffc107; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* ══ MAIN CONTENT ══ */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+.main-scroll { flex: 1; overflow-y: auto; padding: 28px 40px 12px; }
+.main-scroll::-webkit-scrollbar { width: 6px; }
+.main-scroll::-webkit-scrollbar-thumb { background: #c8ddd8; border-radius: 4px; }
+
+.slide { display: none; }
+.slide.active { display: block; }
+
+/* Type badge chip */
+.type-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #e6f7f3; color: #007a6a; border: 1.5px solid #b0e4d8;
+  border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; font-weight: 700;
+  margin-bottom: 18px;
+}
+
+/* ══ CARD ══ */
+.card { background: white; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.07); padding: 28px; margin-bottom: 20px; }
+.slide-title { font-size: 1.5rem; font-weight: 700; color: #1a2a1e; margin-bottom: 8px; }
+.slide-subtitle { color: #777; font-size: 0.95rem; margin-bottom: 18px; }
+
+/* ══ BOTTOM NAV ══ */
+.main-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 40px; border-top: 1px solid #dde8e4; background: white; flex-shrink: 0;
+}
+.nav-prev, .nav-next {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 24px; border-radius: 24px; font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; border: none; transition: all 0.2s;
+}
+.nav-prev { background: #e8ede9; color: #444; }
+.nav-prev:hover { background: #d8e4da; }
+.nav-next { background: #00a896; color: white; }
+.nav-next:hover:not(:disabled) { background: #008a7c; }
+.nav-next:disabled { background: #b0d4cf; cursor: not-allowed; }
+.nav-counter { font-size: 0.88rem; color: #888; font-weight: 600; }
+
+/* ══ TABS ══ */
+.tabs { display: flex; border-bottom: 2px solid #e8ede9; flex-wrap: wrap; margin-bottom: 0; }
+.tab-btn { padding: 10px 18px; border: none; background: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #777; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; flex: 1; text-align: center; }
+.tab-btn.active { color: #00a896; border-bottom-color: #00a896; background: #f0faf7; }
+.tab-btn:hover { background: #f5f5f5; }
+.tab-panel { display: none; padding: 20px; }
+.tab-panel.active { display: block; }
+
+/* ══ EQUATIONS ══ */
+.eq-box { background: #f8f8f8; border: 1px solid #e8ede9; border-radius: 10px; padding: 14px 20px; text-align: center; font-size: 1.25rem; margin: 10px auto; max-width: 320px; font-style: italic; }
+.eq-highlight { color: #e05a2b; font-style: italic; }
+.math { font-style: italic; }
+
+/* ══ FORMULA TABLE ══ */
+.formula-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.97rem; }
+.formula-table td { border: 1px solid #dde8e4; padding: 9px 14px; }
+.formula-table td:first-child { font-style: italic; font-weight: 600; background: #f8fbf9; }
+.formula-table td:last-child { color: #555; }
+
+/* ══ MCQ ══ */
+.mcq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+.mcq-option { display: flex; align-items: flex-start; gap: 14px; background: white; border: 1.5px solid #dde8e4; border-radius: 12px; padding: 14px 16px; cursor: pointer; font-size: 0.97rem; transition: all 0.2s; }
+.mcq-option:hover:not(.locked) { border-color: #00a896; background: #f0faf7; }
+.mcq-option.selected { border-color: #3e8aee; background: #f0f7ff; }
+.mcq-option.correct  { border-color: #2ecc9a; background: #e6f9f2; }
+.mcq-option.wrong    { border-color: #e05a5a; background: #fdf0f0; }
+.mcq-option.locked   { cursor: default; }
+.radio-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 2px; transition: all 0.2s; }
+.radio-circle.checked       { border-color: #3e8aee; background: #3e8aee; }
+.radio-circle.correct-check { border-color: #2ecc9a; background: #2ecc9a; }
+.radio-circle.wrong-x       { border-color: #e05a5a; background: #e05a5a; }
+.radio-circle.checked::after, .radio-circle.correct-check::after { content:''; width:8px; height:8px; border-radius:50%; background:white; }
+.radio-circle.wrong-x::after { content:'✕'; color:white; font-size:11px; line-height:1; }
+
+/* ══ MATCH ══ */
+.match-cols { display: flex; align-items: stretch; position: relative; }
+.match-col { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+.match-col-header { font-size: 0.8rem; font-weight: 700; color: #999; text-align: center; padding-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.match-item { background: #f0faf7; border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; font-style: italic; font-weight: 500; text-align: center; border: 2px solid #b0ddd0; cursor: pointer; transition: all 0.15s; user-select: none; }
+.match-item:hover:not(.locked) { border-color: #00a896; }
+.match-item.selected { outline: 3px solid #1a2a1e; outline-offset: 1px; }
+.match-item.pair-0 { background: #e8f4ff; border-color: #3e8aee; color: #1a4a8a; }
+.match-item.pair-1 { background: #fff3e0; border-color: #ff9800; color: #7a3e00; }
+.match-item.pair-2 { background: #f3e5f5; border-color: #9c27b0; color: #4a0070; }
+.match-item.pair-3 { background: #e0f7fa; border-color: #00bcd4; color: #004d60; }
+.match-item.pair-4 { background: #fce4ec; border-color: #e91e63; color: #7a0030; }
+.match-item.correct { border-color: #2ecc9a !important; background: #e6f9f2 !important; }
+.match-item.wrong   { border-color: #e05a5a !important; background: #fdf0f0 !important; }
+.match-item.locked  { cursor: default; }
+.match-svg-overlay  { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+
+/* ══ DROPDOWN ══ */
+.sentence-line { margin: 10px 0; font-size: 1.02rem; line-height: 2.2; }
+.answer-wrap { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+select.answer-select { font-size:0.95rem; font-family:inherit; font-style:italic; border:2px solid #b0ddd0; border-radius:8px; padding:4px 8px; background:#f0faf7; cursor:pointer; outline:none; transition:all 0.2s; min-width:90px; }
+select.answer-select:focus { border-color: #00a896; }
+select.answer-select.feedback-correct { border-color:#2ecc9a; background:#e6f9f2; }
+select.answer-select.feedback-wrong   { border-color:#e05a5a; background:#fdf0f0; }
+select.answer-select:disabled { cursor:default; opacity:.85; }
+.feedback-icon { font-size: 1rem; }
+
+/* ══ BADGES ══ */
+.correct-badge { background:#e6f9f2; border:2px solid #2ecc9a; border-radius:10px; padding:10px 18px; color:#1a7a3a; font-weight:700; display:inline-flex; align-items:center; gap:8px; margin:14px 0; }
+.wrong-msg { background:#fdf0f0; border:2px solid #e05a5a; border-radius:10px; padding:10px 18px; color:#7a1a1a; font-weight:600; display:inline-flex; align-items:center; gap:8px; margin:14px 0; font-size:.93rem; }
+.note-box { background:#fff8e1; border-left:4px solid #ffc107; border-radius:4px; padding:10px 14px; margin:10px 0; color:#7a5500; font-size:.92rem; }
+
+/* ══ CHECK BTN ══ */
+.check-btn { background:#00a896; color:white; border:none; border-radius:10px; padding:10px 24px; font-size:.95rem; font-weight:700; cursor:pointer; margin-top:14px; transition:background 0.2s; }
+.check-btn:hover:not(:disabled) { background:#008a7c; }
+.check-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ══ INTRO CARD ══ */
+.intro-card { display:grid; grid-template-columns:1fr 1fr; border-radius:14px; overflow:hidden; min-height:420px; }
+.intro-card-img { display:flex; align-items:center; justify-content:center; font-size:4rem; padding:40px; }
+.intro-card-text { display:flex; align-items:center; justify-content:center; padding:48px 40px; }
+.intro-title { font-size:2.4rem; font-weight:800; color:#1a3a5c; line-height:1.25; text-align:center; }
+
+/* ══ VIDEO ══ */
+.video-placeholder { background:#1a1a1a; border-radius:12px; padding:60px 20px; text-align:center; color:#888; font-size:1rem; margin:10px 0; }
+.video-placeholder .play-btn { width:70px; height:70px; background:rgba(255,255,255,.85); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; cursor:pointer; }
+.video-placeholder .play-btn::after { content:''; width:0; height:0; border-top:16px solid transparent; border-bottom:16px solid transparent; border-left:26px solid #333; margin-left:5px; }
+
+/* ══ MISC ══ */
+.property-desc { margin-bottom:10px; color:#555; line-height:1.6; }
+h3 { font-size:1rem; color:#1a2a1e; margin:10px 0 4px; }
+p  { line-height:1.6; margin:4px 0; }
+
+/* ══ MODIFIED SLIDE BANNER ══ */
+.modified-banner {
+  display:flex; align-items:center; gap:10px;
+  background:#fff8e1; border:1.5px solid #ffc107; border-radius:10px;
+  padding:10px 14px; margin-bottom:18px; font-size:.87rem; color:#7a5a00;
+}
+.modified-banner-text { flex:1; font-weight:600; }
+.modified-banner-text span { display:block; font-size:.78rem; font-weight:400; color:#a07000; margin-top:1px; }
+.modified-revert-btn {
+  background:white; border:1.5px solid #ffc107; border-radius:7px;
+  padding:5px 12px; font-size:.82rem; font-weight:700; color:#7a5a00;
+  cursor:pointer; white-space:nowrap; transition:background .15s;
+}
+.modified-revert-btn:hover { background:#fff0a0; }
+
+/* Modified dot in sidebar */
+.si-modified-dot {
+  width:8px; height:8px; border-radius:50%; background:#ffc107;
+  flex-shrink:0; margin-left:2px; display:none; title:'Modified';
+}
+.si-modified-dot.visible { display:block; }
+
+/* ══ MODAL PREVIEW FRAME ══ */
+.modal-preview-section { margin-top:16px; border-top:1px solid #e0e8e4; padding-top:16px; display:none; }
+.modal-preview-section.visible { display:block; }
+.modal-preview-frame {
+  border:1.5px solid #dde8e4; border-radius:10px; padding:20px 24px;
+  max-height:360px; overflow-y:auto; background:#eef7f4;
+}
+.modal-preview-frame .card { margin-bottom:0; }
+
+/* Current slide preview in edit modal */
+.modal-current-slide { margin-bottom:18px; }
+.modal-current-label { font-size:.82rem; font-weight:700; color:#888; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.modal-current-frame {
+  border:1.5px solid #e0e8e4; border-radius:10px; padding:16px 20px;
+  max-height:280px; overflow-y:auto; background:#f8fbf9; position:relative;
+}
+.modal-current-frame .card { margin-bottom:0; box-shadow:none; padding:16px; font-size:.88rem; }
+.modal-current-collapse { background:none; border:none; font-size:.78rem; color:#00a896; font-weight:700; cursor:pointer; margin-left:auto; }
+.modal-current-collapse:hover { text-decoration:underline; }
+.modal-current-frame.collapsed { max-height:60px; overflow:hidden; }
+.modal-current-frame.collapsed::after { content:''; position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent,#f8fbf9); pointer-events:none; }
+
+/* ══ MODALS ══ */
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+.modal-backdrop.open { display:flex; }
+.modal-panel { background:white; border-radius:16px; padding:28px; max-width:820px; width:95%; max-height:92vh; overflow-y:auto; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-title { font-size:1.1rem; font-weight:700; color:#1a2a1e; }
+.modal-close { background:none; border:none; font-size:1.4rem; cursor:pointer; color:#888; line-height:1; }
+.modal-close:hover { color:#333; }
+.modal-field { margin-bottom:14px; }
+.modal-label { font-size:.87rem; font-weight:700; color:#555; margin-bottom:5px; display:block; }
+.modal-select, .modal-textarea, .modal-input { width:100%; border:2px solid #e0e8e4; border-radius:10px; padding:9px 12px; font-size:.93rem; font-family:inherit; outline:none; transition:border-color 0.2s; }
+.modal-select:focus, .modal-textarea:focus, .modal-input:focus { border-color:#00a896; }
+.modal-textarea { min-height:110px; resize:vertical; }
+.modal-row { display:flex; gap:10px; }
+.modal-row .modal-field { flex:1; }
+.modal-api-row { display:flex; gap:10px; align-items:center; }
+.modal-api-row .modal-input { flex:1; }
+.modal-check-label { display:flex; align-items:center; gap:6px; font-size:.84rem; color:#555; white-space:nowrap; cursor:pointer; }
+.modal-btn-row { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+.modal-cancel-btn { background:white; color:#555; border:2px solid #ccc; border-radius:10px; padding:9px 20px; font-size:.93rem; font-weight:600; cursor:pointer; }
+.modal-action-btn { background:#3e8aee; color:white; border:none; border-radius:10px; padding:9px 22px; font-size:.93rem; font-weight:700; cursor:pointer; }
+.modal-action-btn:hover:not(:disabled) { background:#2d6fd4; }
+.modal-action-btn:disabled { opacity:.5; cursor:not-allowed; }
+.modal-action-btn.green { background:#00a896; }
+.modal-action-btn.green:hover:not(:disabled) { background:#008a7c; }
+.modal-status { margin-top:12px; font-size:.88rem; }
+.modal-status.loading { color:#00a896; }
+.modal-status.error   { color:#c0392b; }
+
+@media (max-width: 700px) {
+  .sidebar { width:260px; min-width:260px; }
+  .main-scroll { padding:16px 18px 8px; }
+  .main-nav { padding:12px 18px; }
+  .mcq-grid { grid-template-columns:1fr; }
+  .intro-card { grid-template-columns:1fr; }
+  .modal-row { flex-direction:column; }
+}
+
+/* ══ ANALYTICS VIEW ══ */
+#analyticsView { display:none; flex:1; overflow-y:auto; padding:32px 40px; background:#eef7f4; }
+#analyticsView.active { display:block; }
+.an-card { background:white; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.07); padding:28px; margin-bottom:20px; }
+.an-lesson-title { font-size:1.5rem; font-weight:800; color:#1a2a1e; margin-bottom:16px; }
+.an-stats-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.an-stat { display:inline-flex; align-items:center; gap:7px; padding:7px 16px; border-radius:20px; font-size:0.88rem; font-weight:700; }
+.an-stat.completed  { background:#e6f9f2; color:#1a7a3a; border:1.5px solid #2ecc9a; }
+.an-stat.in-progress{ background:#fff8e1; color:#7a5a00; border:1.5px solid #ffc107; }
+.an-stat.not-started{ background:#f5f5f5; color:#888;    border:1.5px solid #ddd; }
+.an-stat-sep { color:#ddd; font-size:1.1rem; }
+.an-class-bar-label { font-size:0.82rem; color:#888; margin-bottom:6px; font-weight:600; }
+.an-class-bar-track { background:#e8ede9; border-radius:8px; height:10px; overflow:hidden; }
+.an-class-bar-fill  { background:linear-gradient(90deg,#00a896,#2ecc9a); border-radius:8px; height:100%; transition:width 0.6s ease; }
+.an-section-title { font-size:1rem; font-weight:700; color:#1a2a1e; margin-bottom:14px; }
+/* Question cards */
+.an-q-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.an-q-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+.an-q-title { font-size:1.05rem; font-weight:700; color:#1a2a1e; }
+.an-q-slide { font-size:0.78rem; color:#888; font-weight:600; }
+.an-q-meta { font-size:0.86rem; color:#666; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #f0f5f2; }
+.an-q-meta strong { color:#1a2a1e; }
+/* Sentence accuracy rows */
+.an-sent-row { margin-bottom:12px; }
+.an-sent-label { font-size:0.82rem; color:#555; margin-bottom:4px; }
+.an-sent-bar-wrap { display:flex; align-items:center; gap:10px; }
+.an-sent-bar-track { flex:1; background:#e8ede9; border-radius:6px; height:10px; overflow:hidden; }
+.an-sent-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
+.an-sent-bar-fill.good { background:#2ecc9a; }
+.an-sent-bar-fill.mid  { background:#ffc107; }
+.an-sent-bar-fill.poor { background:#e05a5a; }
+.an-sent-pct { font-size:0.82rem; font-weight:700; min-width:36px; text-align:right; }
+.an-sent-note { font-size:0.77rem; color:#999; margin-top:2px; }
+/* MCQ distribution */
+.an-opt-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.an-opt-label { font-size:0.82rem; width:20px; font-weight:700; color:#555; flex-shrink:0; text-align:center; }
+.an-opt-text { font-size:0.82rem; color:#444; min-width:200px; max-width:300px; line-height:1.3; }
+.an-opt-bar-track { flex:1; background:#e8ede9; border-radius:6px; height:14px; overflow:hidden; }
+.an-opt-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
+.an-opt-bar-fill.correct { background:#2ecc9a; }
+.an-opt-bar-fill.wrong   { background:#d0d8d4; }
+.an-opt-count { font-size:0.82rem; color:#555; font-weight:700; min-width:80px; }
+.an-opt-correct-tag { font-size:0.72rem; background:#e6f9f2; color:#1a7a3a; border-radius:6px; padding:1px 6px; font-weight:700; white-space:nowrap; }
+/* Attempts pills */
+.an-attempts { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid #f0f5f2; }
+.an-attempt-pill { font-size:0.8rem; padding:4px 12px; border-radius:12px; font-weight:600; }
+.an-attempt-pill.a1 { background:#e6f9f2; color:#1a7a3a; }
+.an-attempt-pill.a2 { background:#fff8e1; color:#7a5a00; }
+.an-attempt-pill.a3 { background:#fde0e0; color:#c0392b; }
+/* Student table */
+.an-student-row { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid #f0f5f2; }
+.an-student-row:last-child { border-bottom:none; }
+.an-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:700; color:white; flex-shrink:0; }
+.an-name { flex:1; font-size:0.9rem; font-weight:600; color:#2a3a30; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.an-q-dots { display:flex; gap:5px; flex-shrink:0; }
+.an-dot { width:22px; height:22px; border-radius:50%; font-size:0.7rem; display:flex; align-items:center; justify-content:center; font-weight:700; title:attr(title); }
+.an-dot.pass  { background:#e6f9f2; color:#1a7a3a; border:1.5px solid #2ecc9a; }
+.an-dot.fail  { background:#fde0e0; color:#c0392b; border:1.5px solid #e05a5a; }
+.an-dot.na    { background:#f0f0f0; color:#ccc;    border:1.5px solid #ddd; }
+.an-progress-wrap { display:flex; align-items:center; gap:8px; min-width:120px; }
+.an-progress-track { flex:1; background:#e8ede9; border-radius:6px; height:6px; overflow:hidden; }
+.an-progress-fill { background:#00a896; border-radius:6px; height:100%; }
+.an-progress-label { font-size:0.75rem; color:#888; white-space:nowrap; }
+.an-badge { font-size:0.73rem; font-weight:700; padding:3px 9px; border-radius:10px; white-space:nowrap; }
+.an-badge.completed   { background:#e6f9f2; color:#1a7a3a; }
+.an-badge.in-progress { background:#fff8e1; color:#7a5a00; }
+.an-badge.not-started { background:#f5f5f5; color:#aaa; }
+</style>
+</head>
+<body>
+
+<!-- ══ TOP HEADER ══ -->
+<div class="app-header">
+  <div class="app-header-title" id="lessonHeaderTitle">One-Step Addition or Subtraction Equations</div>
+  <button class="present-exit-btn" onclick="exitPresentMode()">✕ Exit</button>
+  <div class="app-header-tabs">
+    <button class="header-tab active" id="tabLesson" onclick="switchMainTab('lesson')">Lesson</button>
+    <button class="header-tab" id="tabAnalytics" onclick="switchMainTab('analytics')">Analytics</button>
+  </div>
+  <div class="present-exit-spacer"></div>
+  <div class="app-header-actions">
+    <button class="hdr-btn new-lesson-btn" onclick="openNewLessonModal()">🆕 New Lesson</button>
+    <div class="show-answers-wrap" onclick="toggleShowAnswers()" title="Show correct answers on all interactive slides">
+      <div class="sa-track" id="saTrack"><div class="sa-thumb"></div></div>
+      <span class="sa-label">Show Answers</span>
+    </div>
+    <button class="hdr-btn present-btn" onclick="enterPresentMode()"><span class="present-icon">⛶</span> Present</button>
+    <button class="hdr-btn edit-btn" id="editModeBtn" onclick="toggleEditMode()">✏ Edit Mode</button>
+  </div>
+</div>
+
+<!-- ══ APP LAYOUT ══ -->
+<div class="app-layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-header-label">📚 Lesson Components</div>
+      <div class="sidebar-header-title" id="sidebarTitle">One-Step Addition or Subtraction Equations</div>
+    </div>
+    <div class="slide-list" id="slideList"></div>
+    <div class="sidebar-footer">
+      <div class="add-slide-card" onclick="openInsertModal(SLIDES.length - 1)">
+        <div class="add-slide-card-icon">📄</div>
+        <div class="add-slide-card-text">Add New Slide <span>Click + to add after last slide</span></div>
+        <button class="add-slide-plus" onclick="event.stopPropagation();openInsertModal(SLIDES.length-1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="main-scroll" id="mainScroll">
+      <div id="lessonContainer"></div>
+    </div>
+    <div class="main-nav">
+      <button class="nav-prev" id="navPrev" onclick="navBack()">‹ Previous</button>
+      <span class="nav-counter" id="navCounter">Slide 1 of 9</span>
+      <button class="nav-next" id="navNext" onclick="navNext()">Next ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANALYTICS VIEW ══ -->
+<div id="analyticsView"></div>
+
+<!-- ══ Edit Slide Modal ══ -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title" id="editModalTitle">Edit Slide</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-current-slide" id="editCurrentSlide" style="display:none">
+      <div class="modal-current-label">📄 Current Slide <button class="modal-current-collapse" id="editCurrentToggle" onclick="toggleCurrentPreview()">Collapse</button></div>
+      <div class="modal-current-frame" id="editCurrentFrame"></div>
+    </div>
+    <div id="editFormSection">
+      <div class="modal-field">
+        <label class="modal-label">Template</label>
+        <select class="modal-select" id="editTemplateSelect">
+          <option value="">— Let AI choose best template —</option>
+          <option value="presentation-tabs">Presentation: Tabbed Content</option>
+          <option value="worked-example-tabs">Worked Example: Step Tabs</option>
+          <option value="dropdown-practice">Interactive: Dropdown Fill-in</option>
+          <option value="stepped-table">Instructional: Step Table</option>
+          <option value="drag-match">Interactive: Click-to-Match</option>
+          <option value="multiple-choice">Interactive: Multiple Choice</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label" id="editPromptLabel">Describe your change</label>
+        <textarea class="modal-textarea" id="editPromptArea" placeholder="e.g. Change the practice equation to z − 5 = 12"></textarea>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Gemini API Key <span style="font-weight:400;color:#888">(free at aistudio.google.com)</span></label>
+        <div class="modal-api-row">
+          <input type="password" class="modal-input" id="editApiKey" placeholder="AIza...">
+          <label class="modal-check-label"><input type="checkbox" id="editApiStore"> Store</label>
+        </div>
+      </div>
+      <div class="modal-btn-row">
+        <button class="modal-cancel-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="modal-action-btn" id="editGenerateBtn" onclick="runSlideGenerate()">Generate ›</button>
+      </div>
+      <div class="modal-status" id="editStatus" style="display:none"></div>
+    </div>
+    <!-- Preview section (shown after generation) -->
+    <div class="modal-preview-section" id="editPreviewSection">
+      <div class="modal-label" style="margin-bottom:10px;font-size:.95rem">Preview — review before publishing</div>
+      <div class="modal-preview-frame" id="editPreviewFrame"></div>
+      <div class="modal-btn-row" style="margin-top:14px">
+        <button class="modal-cancel-btn" onclick="discardSlidePreview()">✗ Discard</button>
+        <button class="modal-action-btn green" onclick="acceptSlidePreview()">✓ Accept &amp; Publish</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ New Lesson Modal ══ -->
+<div class="modal-backdrop" id="newLessonModal">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">Generate New Lesson</span>
+      <button class="modal-close" onclick="closeNewLessonModal()">✕</button>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Lesson Topic / Title</label>
+      <input type="text" class="modal-input" id="nlTopic" placeholder="e.g. Two-Step Equations, Fractions, Geometry Angles…">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label class="modal-label">Grade Level</label>
+        <select class="modal-select" id="nlGrade">
+          <option>Grade 5</option><option selected>Grade 6</option><option>Grade 7</option>
+          <option>Grade 8</option><option>Grade 9</option><option>Grade 10</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Number of Slides</label>
+        <select class="modal-select" id="nlSlides">
+          <option>4</option><option>5</option><option selected>6</option>
+          <option>7</option><option>8</option><option>10</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Additional requirements (optional)</label>
+      <textarea class="modal-textarea" id="nlExtra" placeholder="e.g. Include a real-world word problem, add a matching activity…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Gemini API Key <span style="font-weight:400;color:#888">(free at aistudio.google.com)</span></label>
+      <div class="modal-api-row">
+        <input type="password" class="modal-input" id="nlApiKey" placeholder="AIza...">
+        <label class="modal-check-label"><input type="checkbox" id="nlApiStore"> Store</label>
+      </div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-cancel-btn" onclick="closeNewLessonModal()">Cancel</button>
+      <button class="modal-action-btn green" id="nlGenerateBtn" onclick="runNewLesson()">Generate Lesson ›</button>
+    </div>
+    <div class="modal-status" id="nlStatus" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SECTION 1 — DATA
+// ══════════════════════════════════════════════════════════════
+let LESSON_TITLE = 'One-Step Addition or Subtraction Equations';
+
+let SLIDES = [
+  { type:'intro', emoji:'⚖️', emojiBackground:'#1a5276', cardBackground:'#d6eaf8', title:'One-Step Addition or Subtraction Equations' },
+  { type:'presentation-tabs', title:'Equivalent Equations', subtitle:'Properties of Equality', tabs:[
+    { label:'Addition Property of Equality', description:'The two sides of an equation remain equal when you add the same number to both sides.', equations:['a = b','a + <h>c</h> = b + <h>c</h>'] },
+    { label:'Subtraction Property of Equality', description:'The two sides of an equation remain equal when you subtract the same number from both sides.', equations:['a = b','a − <h>c</h> = b − <h>c</h>'] },
+    { label:'Multiplication Property of Equality', description:'The two sides of an equation remain equal if you multiply both sides by the same non-zero number.', equations:['a = b','a<h>c</h> = b<h>c</h>'] },
+    { label:'Division Property of Equality', description:'The two sides of an equation remain equal when you divide each side by the same non-zero number.', equations:['a = b','<sup>a</sup>/<sub><h>c</h></sub> = <sup>b</sup>/<sub><h>c</h></sub>'] }
+  ]},
+  { type:'video', title:'Video: One-Step Equations', duration:'0:44', description:'Covers solving one-step addition and subtraction equations', note:'This lesson originally included an animated video (44 seconds). The video is only available in the online version.' },
+  { type:'worked-example-tabs', title:'Solve One-Step Addition Equations', tabs:[
+    { label:'Additive Inverse', heading:'Undo Addition Using Additive Inverse', paragraphs:['Solve <i>x</i> + 2 = −3','Identify the term you need to eliminate to isolate the variable.','We need to eliminate <strong>2</strong>, so add <strong>−2</strong> to both sides.'] },
+    { label:'Addition Property', heading:'Add to Both Sides', paragraphs:['Undo +2 by adding −2 to both sides.','<i>x</i> + 2 + (−2) = −3 + (−2)','Simplify:','<i>x</i> + 0 = −3 + (−2)','<strong style="font-size:1.1rem"><i>x</i> = −5</strong>'] },
+    { label:'Check the Solution', heading:'Substitution in Original Equation', paragraphs:['Check if −5 is a solution by substituting −5 for <i>x</i>.','<i>x</i> + 2 = −3','<i>−5</i> + 2 = −3 ✓','<strong>Therefore −5 is the solution.</strong>'] }
+  ]},
+  { type:'dropdown-practice', title:'Solve One-Step Addition Equations', subtitle:'Practice Question', prompt:'Solve <i>y</i> + 3 = −8.', instruction:'Choose the correct option from the drop-down list.', sentences:[
+    { before:'The first step is to', id:'d1', options:['add 3','add −3','subtract 8','multiply by −1'], correct:'add −3', after:'to both sides.' },
+    { before:'The equivalent equation is <i>y</i> +', id:'d2', options:['3','0','−3','−8'], correct:'0', after:'= −11.' },
+    { before:'The solution is <i>y</i> =', id:'d3', options:['−5','−11','11','5'], correct:'−11', after:'.' }
+  ]},
+  { type:'stepped-table', title:'Solve One-Step Subtraction Equations', intro:'Given the equation −7 = <i>x</i> − 9. Show the steps needed to solve and check.', sections:[
+    { heading:'Solving:', rows:[['−7 = <i>x</i> − 9','Write the equation.'],['<u>+9</u>&nbsp;&nbsp;&nbsp;<u>+9</u>','Addition Property of Equality'],['2 = <i>x</i>','Simplify.']] },
+    { heading:'Check the solution:', rows:[['−7 = <i>x</i> − 9','Write the original equation.'],['−7 = 2 − 9','Replace <i>x</i> with 2.'],['−7 = −7','The sentence is true. ✓']] }
+  ]},
+  { type:'drag-match', title:'Match Equations to Solutions', subtitle:'Match each equation to its solution.', instruction:'Click an equation to select it, then click the matching solution.', pairs:[
+    { equation:'−4 = <i>x</i> + 6', solution:'<i>x</i> = −10' },
+    { equation:'<i>x</i> − 3 = 6',  solution:'<i>x</i> = 9'  },
+    { equation:'7 = <i>x</i> + 1',  solution:'<i>x</i> = 6'  },
+    { equation:'9 = <i>x</i> − 2',  solution:'<i>x</i> = 11' },
+    { equation:'3 + <i>x</i> = 10', solution:'<i>x</i> = 7'  }
+  ]},
+  { type:'multiple-choice', title:'Real Life Application', question:'A truck loaded with 2 tons of fruits weighs 3.6 tons.<br>Write and solve an equation to find the weight <i>x</i> of the empty truck.', instruction:'Select the correct answer.', correctIndex:0, options:[
+    { lines:['Equation: 2 + <i>x</i> = 3.6','Weight of empty truck: <i>x</i> = 1.6 tons'] },
+    { lines:['Equation: 2<i>x</i> = 3.6','Weight of empty truck: <i>x</i> = 1.8 tons'] },
+    { lines:['Equation: 2 − <i>x</i> = 3.6','Weight of empty truck: <i>x</i> = 3.4 tons'] },
+    { lines:['Equation: 3.8 + 2 = <i>x</i>','Weight of empty truck: <i>x</i> = 5.8 tons'] }
+  ]},
+  { type:'summary', emoji:'🎉', title:'Lesson Complete!', subtitle:"You've completed <strong>One-Step Addition or Subtraction Equations</strong>", takeaways:[
+    'Use the <strong>Properties of Equality</strong> to solve equations.',
+    'To solve addition equations, add the <strong>additive inverse</strong>.',
+    'To solve subtraction equations, use the <strong>Addition Property of Equality</strong>.',
+    'Always <strong>check your solution</strong> by substituting back into the original equation.'
+  ]}
+];
+
+const TYPE_META = {
+  'intro':               { label:'Intro',    icon:'🎬', bg:'#fde0e0', color:'#c0392b' },
+  'presentation-tabs':   { label:'Content',  icon:'📚', bg:'#d8f0eb', color:'#007a6a' },
+  'video':               { label:'Video',    icon:'▶',  bg:'#2d2d2d', color:'white'   },
+  'worked-example-tabs': { label:'Content',  icon:'✏️', bg:'#ddeeff', color:'#1a4a8a' },
+  'dropdown-practice':   { label:'Practice', icon:'🎯', bg:'#ffecd0', color:'#8a4a00' },
+  'stepped-table':       { label:'Content',  icon:'📋', bg:'#ddeeff', color:'#1a4a8a' },
+  'drag-match':          { label:'Practice', icon:'🔗', bg:'#f0e0ff', color:'#5a007a' },
+  'multiple-choice':     { label:'Question', icon:'❓', bg:'#fce4ec', color:'#880e4f' },
+  'summary':             { label:'Summary',  icon:'⭐', bg:'#fff8e1', color:'#7a5a00' }
+};
+
+const SCHEMAS = {
+  'presentation-tabs':   { type:'presentation-tabs',  title:'string', subtitle:'string (optional)', tabs:[{label:'string',description:'string',equations:['string — use <h>text</h> for highlighted variables']}] },
+  'worked-example-tabs': { type:'worked-example-tabs', title:'string', tabs:[{label:'string',heading:'string',paragraphs:['string — may include <i>, <strong>']}] },
+  'dropdown-practice':   { type:'dropdown-practice',  title:'string', subtitle:'string', prompt:'string', instruction:'string', sentences:[{before:'string',id:'unique string',options:['3-4 strings'],correct:'string matching one option',after:'string'}] },
+  'stepped-table':       { type:'stepped-table',      title:'string', intro:'string', sections:[{heading:'string',rows:[['cell1','cell2']]}] },
+  'drag-match':          { type:'drag-match',         title:'string', subtitle:'string', instruction:'string', pairs:[{equation:'string html',solution:'string html'}] },
+  'multiple-choice':     { type:'multiple-choice',    title:'string', question:'string', instruction:'string', correctIndex:'number 0-3', options:[{lines:['string','string']}] }
+};
+
+// ══════════════════════════════════════════════════════════════
+// MOCK STUDENT DATA
+// ══════════════════════════════════════════════════════════════
+// reached = number of slides visited (0 = not started, 9 = all complete)
+// qDropdown: {attempts, wrongFirst:[sentence ids wrong on 1st try]}  — present if reached>4
+// qMatch:    {attempts}                                               — present if reached>6
+// qMCQ:      {first: option index chosen on 1st attempt}             — present if reached>7
+const MOCK_STUDENTS = [
+  { name:'Alya Ahmed Hassan',           initials:'AA', color:'#e91e63', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:1}, qMCQ:{first:0} },
+  { name:'Mohammed Ali Salem',          initials:'MA', color:'#9c27b0', reached:7,
+    qDropdown:{attempts:2,wrongFirst:['d1']},    qMatch:{attempts:2} },
+  { name:'Sara Khalid Al Mansouri',     initials:'SK', color:'#3e8aee', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:1}, qMCQ:{first:0} },
+  { name:'Omar Faris Nasser',           initials:'OF', color:'#ff9800', reached:5,
+    qDropdown:{attempts:3,wrongFirst:['d1','d3']} },
+  { name:'Fatima Ibrahim Al Zaabi',     initials:'FI', color:'#00bcd4', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:1}, qMCQ:{first:0} },
+  { name:'Yousef Ahmed Bin Zayed',      initials:'YA', color:'#4caf50', reached:3 },
+  { name:'Mariam Hassan Al Rashidi',    initials:'MH', color:'#f44336', reached:9,
+    qDropdown:{attempts:2,wrongFirst:['d2']},    qMatch:{attempts:2}, qMCQ:{first:1} },
+  { name:'Abdullah Saeed Al Kaabi',     initials:'AS', color:'#607d8b', reached:6,
+    qDropdown:{attempts:3,wrongFirst:['d1','d2']} },
+  { name:'Hessa Mohammed Al Falasi',    initials:'HM', color:'#795548', reached:0 },
+  { name:'Khalid Rashid Al Nuaimi',     initials:'KR', color:'#009688', reached:8,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:3}, qMCQ:{first:0} },
+  { name:'Noura Sultan Al Ameri',       initials:'NS', color:'#673ab7', reached:2 },
+  { name:'Hamad Jassim Al Suwaidi',     initials:'HJ', color:'#ff5722', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:1}, qMCQ:{first:0} },
+  { name:'Shaikha Nasser Al Mazrouei', initials:'SN', color:'#2196f3', reached:4 },
+  { name:'Rashid Ahmed Al Dhaheri',     initials:'RA', color:'#8bc34a', reached:0 },
+  { name:'Aisha Saeed Al Marzouqi',     initials:'AS', color:'#e040fb', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:2}, qMCQ:{first:2} },
+  { name:'Saif Mohammed Al Hameli',     initials:'SM', color:'#ffc107', reached:1 },
+  { name:'Latifa Khalifa Al Qubaisi',  initials:'LK', color:'#00acc1', reached:7,
+    qDropdown:{attempts:3,wrongFirst:['d1','d3']}, qMatch:{attempts:2} },
+  { name:'Jassim Ali Al Kaabi',         initials:'JA', color:'#ef5350', reached:0 },
+  { name:'Moza Obaid Al Remeithi',      initials:'MO', color:'#26a69a', reached:9,
+    qDropdown:{attempts:1,wrongFirst:[]},        qMatch:{attempts:1}, qMCQ:{first:3} },
+  { name:'Nasser Hamad Al Blooshi',     initials:'NH', color:'#5c6bc0', reached:6,
+    qDropdown:{attempts:2,wrongFirst:['d2']} },
+  { name:'Hind Saud Al Mansouri',       initials:'HS', color:'#ffeb3b', reached:0 },
+  { name:'Tariq Majid Al Hammadi',      initials:'TM', color:'#ff7043', reached:3 },
+  { name:'Amna Zayed Al Ameemi',        initials:'AZ', color:'#42a5f5', reached:8,
+    qDropdown:{attempts:2,wrongFirst:['d3']},    qMatch:{attempts:1}, qMCQ:{first:1} },
+  { name:'Faisal Khalid Al Mazrouei',  initials:'FK', color:'#66bb6a', reached:0 },
+];
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 2 — STATE
+// ══════════════════════════════════════════════════════════════
+let currentSlide = 0;
+let editModeActive = false;
+let SLIDE_STATE = {};
+let SLIDE_HISTORY = {};
+let LESSON_HISTORY = null;
+let editTargetSlide = null;
+let editInsertAfter = null;
+let pendingSlideEdit = null; // { isInsert, targetSlide, insertAfter, data }
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 3 — SLIDE STATE HELPERS
+// ══════════════════════════════════════════════════════════════
+function initSlideState(i) {
+  const t = SLIDES[i] && SLIDES[i].type;
+  if (t === 'dropdown-practice') SLIDE_STATE[i] = { passed:false };
+  else if (t === 'drag-match')   SLIDE_STATE[i] = { passed:false, userPairs:{}, selectedEq:null, shuffledSolutions:null };
+  else if (t === 'multiple-choice') SLIDE_STATE[i] = { passed:false, selectedIndex:null, checked:false };
+  else delete SLIDE_STATE[i];
+}
+function resetSlideState(i) { initSlideState(i); }
+function canAdvance(i) { if (showAnswersMode) return true; const s = SLIDE_STATE[i]; return !s || s.passed; }
+function unlockNext(i) { if (SLIDE_STATE[i]) SLIDE_STATE[i].passed = true; updateMainNav(); updateSidebarItem(i); }
+
+function shiftStateKeys(from, delta) {
+  const ns = {}, nh = {};
+  Object.entries(SLIDE_STATE).forEach(([k,v]) => { const i=parseInt(k); ns[i>=from?i+delta:i]=v; });
+  Object.entries(SLIDE_HISTORY).forEach(([k,v]) => { const i=parseInt(k); nh[i>=from?i+delta:i]=v; });
+  SLIDE_STATE = ns; SLIDE_HISTORY = nh;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 4 — DOM BUILDING
+// ══════════════════════════════════════════════════════════════
+function buildAllDOM() {
+  buildSlideCards();
+  buildSidebar();
+  updateMainNav();
+}
+
+function buildSlideCards() {
+  const container = document.getElementById('lessonContainer');
+  container.innerHTML = '';
+  SLIDES.forEach((_, i) => {
+    const div = document.createElement('div');
+    div.className = 'slide' + (i === currentSlide ? ' active' : '');
+    div.id = 'slide-' + i;
+    div.innerHTML = '<div class="card"></div>';
+    container.appendChild(div);
+    renderSlide(i);
+  });
+}
+
+function buildSidebar() {
+  const list = document.getElementById('slideList');
+  list.innerHTML = '';
+
+  SLIDES.forEach((s, i) => {
+    // Insert strip before each slide (edit mode)
+    const strip = document.createElement('div');
+    strip.className = 'insert-item';
+    strip.id = 'ins-' + i;
+    strip.innerHTML = `<button class="insert-btn" onclick="openInsertModal(${i-1})">+ Insert slide here</button>`;
+    list.appendChild(strip);
+
+    const meta = TYPE_META[s.type] || { label:'Slide', icon:'📄', bg:'#eee', color:'#555' };
+    const isActive = i === currentSlide;
+    const passed = canAdvance(i) && SLIDE_STATE[i] !== undefined;
+    const hasUndo = !!SLIDE_HISTORY[i];
+    const isEditable = Object.keys(SCHEMAS).includes(s.type);
+
+    const isHidden = !!s._hidden;
+    const item = document.createElement('div');
+    item.className = 'slide-item' + (isActive ? ' active' : '') + (isHidden ? ' hidden-slide' : '');
+    item.id = 'si-' + i;
+    item.onclick = () => goToSlide(i);
+    item.innerHTML = `
+      <div class="slide-item-icon" style="background:${meta.bg};color:${meta.color}">${meta.icon}</div>
+      <div class="slide-item-body">
+        <div class="slide-item-num" style="display:flex;align-items:center;gap:5px">Slide ${i+1}${hasUndo?'<span style="background:#ffc107;color:#7a5000;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:8px;letter-spacing:.3px">MODIFIED</span>':''}${isHidden?'<span style="background:#e0e0e0;color:#888;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:8px">HIDDEN</span>':''}</div>
+        <div class="slide-item-title">${s.title || meta.label}</div>
+        <div class="slide-item-type">${meta.label}</div>
+      </div>
+      <div class="slide-item-edit">
+        ${isEditable ? `<button class="si-btn si-edit" title="Edit with AI" onclick="event.stopPropagation();openEditModal(${i})">✏</button>` : ''}
+        <button class="si-btn si-hide" title="${isHidden?'Show':'Hide'} slide" onclick="event.stopPropagation();toggleHideSlide(${i})">${isHidden?'👁':'🙈'}</button>
+        ${SLIDES.length > 1 ? `<button class="si-btn si-del" title="Delete slide" onclick="event.stopPropagation();deleteSlide(${i})">🗑</button>` : ''}
+        ${hasUndo ? `<button class="si-btn" title="Revert to original" onclick="event.stopPropagation();undoSlideEdit(${i})" style="color:#e05a2b">↩ Revert</button>` : ''}
+      </div>
+      <div class="slide-item-status">${passed && SLIDE_STATE[i] ? '✅' : ''}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  // Update titles
+  document.getElementById('sidebarTitle').textContent = LESSON_TITLE;
+  document.getElementById('lessonHeaderTitle').textContent = LESSON_TITLE;
+  document.getElementById('pageTitle').textContent = LESSON_TITLE;
+}
+
+function updateSidebarItem(i) {
+  // Rebuild just that item
+  buildSidebar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 5 — NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function goToSlide(n) {
+  document.getElementById('slide-' + currentSlide).classList.remove('active');
+  const prevSI = document.getElementById('si-' + currentSlide);
+  if (prevSI) prevSI.classList.remove('active');
+
+  currentSlide = n;
+  document.getElementById('slide-' + n).classList.add('active');
+  const nextSI = document.getElementById('si-' + n);
+  if (nextSI) { nextSI.classList.add('active'); nextSI.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+
+  document.getElementById('mainScroll').scrollTop = 0;
+  updateMainNav();
+}
+
+function updateMainNav() {
+  const visible = SLIDES.map((s,j)=>({idx:j,hidden:!!s._hidden})).filter(s=>!s.hidden);
+  const visNum  = visible.findIndex(v=>v.idx===currentSlide) + 1;
+  const visTotal = visible.length;
+  const isLast  = visible.length > 0 && visible[visible.length-1].idx === currentSlide;
+  const isFirst = visible.length > 0 && visible[0].idx === currentSlide;
+
+  document.getElementById('navCounter').textContent = `Slide ${visNum || (currentSlide+1)} of ${visTotal}`;
+  document.getElementById('navPrev').disabled = isFirst;
+  const nextBtn = document.getElementById('navNext');
+  if (isLast) {
+    nextBtn.textContent = '↩ Restart';
+    nextBtn.disabled = false;
+    nextBtn.onclick = () => goToSlide(visible[0].idx);
+  } else {
+    nextBtn.textContent = 'Next ›';
+    nextBtn.disabled = !canAdvance(currentSlide);
+    nextBtn.onclick = () => navNext();
+  }
+}
+
+function navBack() {
+  for (let j = currentSlide - 1; j >= 0; j--) { if (!SLIDES[j]._hidden) { goToSlide(j); return; } }
+}
+function navNext() {
+  if (!canAdvance(currentSlide)) {
+    const btn = document.getElementById('navNext');
+    btn.style.transform = 'translateX(6px)'; setTimeout(()=>btn.style.transform='',300);
+    return;
+  }
+  for (let j = currentSlide + 1; j < SLIDES.length; j++) { if (!SLIDES[j]._hidden) { goToSlide(j); return; } }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 6 — TAB SWITCHER
+// ══════════════════════════════════════════════════════════════
+function switchTab(sn, tn) {
+  document.querySelectorAll('#tabs-'+sn+' .tab-btn').forEach((t,i)=>t.classList.toggle('active',i===tn));
+  document.querySelectorAll('[id^="tab-'+sn+'-"]').forEach((p,i)=>p.classList.toggle('active',i===tn));
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 7 — RENDERERS
+// ══════════════════════════════════════════════════════════════
+function processEq(s) { return String(s).replace(/<h>(.*?)<\/h>/g,'<span class="eq-highlight">$1</span>'); }
+
+function typeBadge(type) {
+  const m = TYPE_META[type] || { label:'Slide', bg:'#eee', color:'#555' };
+  return `<div class="type-badge" style="background:${m.bg};color:${m.color};border-color:${m.color}33">${m.label}</div>`;
+}
+
+function renderIntro(d) {
+  const mathSvg = `<svg viewBox="0 0 280 200" width="100%" style="max-width:380px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.15))" xmlns="http://www.w3.org/2000/svg">
+    <!-- Balance beam -->
+    <rect x="135" y="150" width="10" height="40" rx="3" fill="#a0c4e8"/>
+    <polygon points="100,150 180,150 160,190 120,190" fill="#7aacd4" opacity=".35"/>
+    <rect x="60" y="140" width="160" height="12" rx="6" fill="#b8d8f0"/>
+    <circle cx="140" cy="146" r="8" fill="#5a9acc"/>
+    <!-- Left pan -->
+    <path d="M60,152 Q40,165 45,180 L90,180 Q95,165 75,152" fill="#e8d06a" stroke="#c4a82a" stroke-width="1.5"/>
+    <text x="67" y="174" font-size="15" font-weight="700" fill="#5a4200" font-family="Georgia,serif" font-style="italic">x+3</text>
+    <!-- Right pan -->
+    <path d="M205,152 Q185,165 190,180 L235,180 Q240,165 220,152" fill="#e8d06a" stroke="#c4a82a" stroke-width="1.5"/>
+    <text x="205" y="174" font-size="15" font-weight="700" fill="#5a4200" font-family="Georgia,serif">7</text>
+    <!-- Equals sign floating -->
+    <rect x="125" y="104" width="30" height="5" rx="2.5" fill="white" opacity=".9"/>
+    <rect x="125" y="114" width="30" height="5" rx="2.5" fill="white" opacity=".9"/>
+    <!-- Decorative math symbols -->
+    <text x="22" y="60" font-size="28" fill="white" opacity=".25" font-weight="700">+</text>
+    <text x="240" y="50" font-size="28" fill="white" opacity=".25" font-weight="700">−</text>
+    <text x="30" y="120" font-size="22" fill="white" opacity=".2" font-weight="700">=</text>
+    <text x="230" y="120" font-size="20" fill="white" opacity=".2" font-style="italic" font-family="Georgia,serif">x</text>
+    <!-- Title equation -->
+    <text x="140" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="white" opacity=".85" font-family="Georgia,serif" font-style="italic">x + 3 = 7</text>
+    <text x="140" y="70" text-anchor="middle" font-size="13" fill="white" opacity=".55" font-weight="600">Solve for x</text>
+  </svg>`;
+  return `<div class="intro-card"><div class="intro-card-img" style="background:${d.emojiBackground||'#1a5276'};display:flex;align-items:center;justify-content:center;padding:20px">${mathSvg}</div><div class="intro-card-text" style="background:${d.cardBackground||'#d6eaf8'}"><div class="intro-title">${d.title}</div></div></div>`;
+}
+function renderPresentationTabs(d,idx) {
+  const btns=d.tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" onclick="switchTab(${idx},${i})">${t.label}</button>`).join('');
+  const panels=d.tabs.map((t,i)=>`<div class="tab-panel${i===0?' active':''}" id="tab-${idx}-${i}"><p class="property-desc">${t.description||''}</p>${(t.equations||[]).map(e=>`<div class="eq-box"><span class="math">${processEq(e)}</span></div>`).join('')}</div>`).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div>${d.subtitle?`<div class="slide-subtitle">${d.subtitle}</div>`:''}<div class="tabs" id="tabs-${idx}">${btns}</div>${panels}`;
+}
+function renderVideo(d) {
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><div class="video-placeholder"><div class="play-btn"></div><p>Animated lesson video (${d.duration})<br><span style="font-size:.85rem">${d.description}</span></p></div><div class="note-box"><strong>Note:</strong> ${d.note}</div>`;
+}
+function renderWorkedExampleTabs(d,idx) {
+  const btns=d.tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" onclick="switchTab(${idx},${i})">${t.label}</button>`).join('');
+  const panels=d.tabs.map((t,i)=>`<div class="tab-panel${i===0?' active':''}" id="tab-${idx}-${i}"><h3>${t.heading}</h3>${(t.paragraphs||[]).map(p=>`<p class="math" style="margin:6px 0">${p}</p>`).join('')}</div>`).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><div class="tabs" id="tabs-${idx}">${btns}</div>${panels}`;
+}
+function renderDropdownPractice(d,idx) {
+  const rows=d.sentences.map(s=>{
+    const opts=shuffle([...s.options],s.id).map(o=>`<option value="${escHtml(o)}">${escHtml(o)}</option>`).join('');
+    return `<div class="sentence-line">${s.before?s.before+' ':''}<span class="answer-wrap"><select class="answer-select" id="sel-${idx}-${s.id}"><option value="">— select —</option>${opts}</select><span class="feedback-icon" id="fi-${idx}-${s.id}"></span></span>${s.after?' '+s.after:''}</div>`;
+  }).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><p style="color:#777;font-size:.9rem;margin-bottom:6px">${d.subtitle}</p><p style="font-size:1.1rem;font-weight:700;margin-bottom:10px">${d.prompt}</p><p style="color:#005a8a;font-weight:600;margin-bottom:14px">${d.instruction}</p>${rows}<div style="margin-top:16px"><button class="check-btn" id="checkBtn-${idx}" onclick="checkDropdown(${idx})">Check Answer</button></div><div id="dropResult-${idx}" style="margin-top:10px"></div>`;
+}
+function renderSteppedTable(d) {
+  const secs=d.sections.map(s=>`<p style="font-weight:700;margin:14px 0 6px">${s.heading}</p><table class="formula-table"><tbody>${s.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table>`).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><p style="margin-bottom:14px">${d.intro}</p>${secs}`;
+}
+function renderDragMatch(d,idx) {
+  if(!SLIDE_STATE[idx]) SLIDE_STATE[idx]={passed:false,userPairs:{},selectedEq:null,shuffledSolutions:null};
+  const st=SLIDE_STATE[idx];
+  if(!st.shuffledSolutions) st.shuffledSolutions=shuffle(d.pairs.map((_,i)=>i),'match'+idx);
+  const eqItems=d.pairs.map((p,i)=>`<div class="match-item" id="eq-${idx}-${i}" onclick="matchClickEq(${idx},${i})">${p.equation}</div>`).join('');
+  const solItems=st.shuffledSolutions.map(si=>`<div class="match-item" id="sol-${idx}-${si}" onclick="matchClickSol(${idx},${si})">${d.pairs[si].solution}</div>`).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><div class="slide-subtitle">${d.subtitle}</div><p style="color:#005a8a;font-weight:600;margin-bottom:14px">${d.instruction}</p><div class="match-cols" id="matchCols-${idx}"><div class="match-col"><div class="match-col-header">Equation</div>${eqItems}</div><svg class="match-svg-overlay" id="matchSvg-${idx}"></svg><div class="match-col"><div class="match-col-header">Solution</div>${solItems}</div></div><div style="margin-top:16px"><button class="check-btn" id="matchCheckBtn-${idx}" onclick="checkMatch(${idx})" disabled>Check Matches</button></div><div id="matchResult-${idx}" style="margin-top:10px"></div>`;
+}
+function renderMultipleChoice(d,idx) {
+  const opts=d.options.map((o,i)=>`<div class="mcq-option" id="mcq-${idx}-${i}" onclick="selectMCQ(${idx},${i})"><div class="radio-circle" id="rc-${idx}-${i}"></div><div>${o.lines.map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
+  return `${typeBadge(d.type)}<div class="slide-title">${d.title}</div><p style="font-size:1.05rem;font-weight:700;margin-bottom:14px">${d.question}</p><p style="color:#005a8a;font-weight:600;margin-bottom:10px">${d.instruction}</p><div class="mcq-grid">${opts}</div><button class="check-btn" id="mcqCheckBtn-${idx}" onclick="checkMCQ(${idx})" disabled>Check Answer</button><div id="mcqResult-${idx}" style="margin-top:10px"></div>`;
+}
+function renderSummary(d,idx) {
+  return `<div style="text-align:center;padding:20px 0"><div style="font-size:3rem;margin-bottom:16px">${d.emoji}</div><div class="slide-title">${d.title}</div><p style="margin:12px 0 24px;color:#666">${d.subtitle}</p><div style="background:#f0faf7;border-radius:12px;padding:20px;text-align:left;max-width:480px;margin:0 auto"><p style="font-weight:700;margin-bottom:10px;color:#005a4a">Key Takeaways:</p><ul style="padding-left:20px;line-height:1.9;color:#444">${d.takeaways.map(t=>`<li>${t}</li>`).join('')}</ul></div></div>`;
+}
+
+const RENDERERS = { intro:renderIntro,'presentation-tabs':renderPresentationTabs,video:renderVideo,'worked-example-tabs':renderWorkedExampleTabs,'dropdown-practice':renderDropdownPractice,'stepped-table':renderSteppedTable,'drag-match':renderDragMatch,'multiple-choice':renderMultipleChoice,summary:renderSummary };
+
+function renderSlide(i) {
+  const d=SLIDES[i], fn=RENDERERS[d.type]; if(!fn) return;
+  document.querySelector('#slide-'+i+' .card').innerHTML = fn(d,i);
+  if (['dropdown-practice','drag-match','multiple-choice'].includes(d.type)) {
+    injectShowAnswersBanner(i);
+    if (showAnswersMode) revealSlideAnswers(i);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 8 — INTERACTIVITY
+// ══════════════════════════════════════════════════════════════
+function checkDropdown(idx) {
+  const d=SLIDES[idx]; let ok=true;
+  d.sentences.forEach(s=>{
+    const sel=document.getElementById('sel-'+idx+'-'+s.id);
+    const fi=document.getElementById('fi-'+idx+'-'+s.id);
+    if(!sel) return;
+    sel.classList.remove('feedback-correct','feedback-wrong');
+    if(!sel.value){ok=false;fi.textContent='';return;}
+    if(sel.value===s.correct){sel.classList.add('feedback-correct');sel.disabled=true;fi.textContent='✓';fi.style.color='#2ecc9a';}
+    else{sel.classList.add('feedback-wrong');fi.textContent='✗';fi.style.color='#e05a5a';ok=false;}
+  });
+  const res=document.getElementById('dropResult-'+idx);
+  if(ok){res.innerHTML='<div class="correct-badge">✓ Well done! All correct.</div>';document.getElementById('checkBtn-'+idx).disabled=true;unlockNext(idx);}
+  else{res.innerHTML='<div class="wrong-msg">✗ Fix the highlighted answers and try again.</div>';}
+}
+
+function matchClickEq(idx,eqIdx) {
+  const st=SLIDE_STATE[idx]; if(!st||st.passed) return;
+  if(st.userPairs[eqIdx]!==undefined){unpairEq(idx,eqIdx);return;}
+  if(st.selectedEq!==null){const p=document.getElementById('eq-'+idx+'-'+st.selectedEq);if(p)p.classList.remove('selected');}
+  st.selectedEq=eqIdx; document.getElementById('eq-'+idx+'-'+eqIdx).classList.add('selected');
+}
+function matchClickSol(idx,solIdx) {
+  const st=SLIDE_STATE[idx]; if(!st||st.passed) return;
+  if(st.selectedEq===null){const ex=Object.keys(st.userPairs).find(k=>st.userPairs[k]===solIdx);if(ex!==undefined)unpairEq(idx,parseInt(ex));return;}
+  const eqIdx=st.selectedEq;
+  const exEq=Object.keys(st.userPairs).find(k=>st.userPairs[k]===solIdx);
+  if(exEq!==undefined)unpairEq(idx,parseInt(exEq));
+  const pc=Object.keys(st.userPairs).length;
+  st.userPairs[eqIdx]=solIdx;
+  const eqEl=document.getElementById('eq-'+idx+'-'+eqIdx),sEl=document.getElementById('sol-'+idx+'-'+solIdx);
+  if(eqEl){eqEl.classList.remove('selected');eqEl.className='match-item pair-'+pc;eqEl.dataset.pair=pc;}
+  if(sEl){sEl.className='match-item pair-'+pc;sEl.dataset.pair=pc;}
+  st.selectedEq=null;drawMatchConnectors(idx);
+  const btn=document.getElementById('matchCheckBtn-'+idx);
+  if(btn)btn.disabled=Object.keys(st.userPairs).length<SLIDES[idx].pairs.length;
+}
+function unpairEq(idx,eqIdx) {
+  const st=SLIDE_STATE[idx];const solIdx=st.userPairs[eqIdx];delete st.userPairs[eqIdx];
+  const eqEl=document.getElementById('eq-'+idx+'-'+eqIdx),sEl=document.getElementById('sol-'+idx+'-'+solIdx);
+  if(eqEl)eqEl.className='match-item'; if(sEl)sEl.className='match-item';
+  st.selectedEq=null;drawMatchConnectors(idx);
+  const btn=document.getElementById('matchCheckBtn-'+idx);
+  if(btn)btn.disabled=Object.keys(st.userPairs).length<SLIDES[idx].pairs.length;
+}
+function drawMatchConnectors(idx) {
+  const svg=document.getElementById('matchSvg-'+idx),cont=document.getElementById('matchCols-'+idx);
+  if(!svg||!cont)return; svg.innerHTML='';
+  const cr=cont.getBoundingClientRect(),st=SLIDE_STATE[idx];if(!st)return;
+  const colors=['#3e8aee','#ff9800','#9c27b0','#00bcd4','#e91e63'];
+  Object.entries(st.userPairs).forEach(([eqIdx,solIdx])=>{
+    const eqEl=document.getElementById('eq-'+idx+'-'+eqIdx),sEl=document.getElementById('sol-'+idx+'-'+solIdx);
+    if(!eqEl||!sEl)return;
+    const er=eqEl.getBoundingClientRect(),sr=sEl.getBoundingClientRect();
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',er.right-cr.left);line.setAttribute('y1',er.top+er.height/2-cr.top);
+    line.setAttribute('x2',sr.left-cr.left);line.setAttribute('y2',sr.top+sr.height/2-cr.top);
+    line.setAttribute('stroke',colors[eqEl.dataset.pair]||'#aaa');line.setAttribute('stroke-width','2.5');line.setAttribute('stroke-dasharray','6,3');
+    svg.appendChild(line);
+  });
+}
+function checkMatch(idx) {
+  const st=SLIDE_STATE[idx]; let allOk=true;
+  Object.entries(st.userPairs).forEach(([eqIdx,solIdx])=>{
+    const ok=parseInt(eqIdx)===parseInt(solIdx);
+    const eqEl=document.getElementById('eq-'+idx+'-'+eqIdx),sEl=document.getElementById('sol-'+idx+'-'+solIdx);
+    const cls=ok?'correct':'wrong';
+    if(eqEl){eqEl.classList.add(cls,'locked');eqEl.onclick=null;}
+    if(sEl){sEl.classList.add(cls,'locked');sEl.onclick=null;}
+    if(!ok)allOk=false;
+  });
+  const res=document.getElementById('matchResult-'+idx);
+  if(allOk){res.innerHTML='<div class="correct-badge">✓ All matches correct! Well done.</div>';document.getElementById('matchCheckBtn-'+idx).disabled=true;unlockNext(idx);}
+  else{
+    res.innerHTML='<div class="wrong-msg">✗ Some pairs are wrong (red). Click a wrong item to unpair and retry.</div>';
+    Object.entries(st.userPairs).forEach(([eqIdx,solIdx])=>{
+      const eqEl=document.getElementById('eq-'+idx+'-'+eqIdx),sEl=document.getElementById('sol-'+idx+'-'+solIdx);
+      if(eqEl&&eqEl.classList.contains('wrong')){eqEl.classList.remove('locked');eqEl.onclick=()=>matchClickEq(idx,parseInt(eqIdx));}
+      if(sEl&&sEl.classList.contains('wrong')){sEl.classList.remove('locked');sEl.onclick=()=>matchClickSol(idx,parseInt(solIdx));}
+    });
+  }
+}
+function selectMCQ(idx,optIdx) {
+  const st=SLIDE_STATE[idx];if(!st||st.checked)return;
+  st.selectedIndex=optIdx;
+  SLIDES[idx].options.forEach((_,i)=>{
+    const opt=document.getElementById('mcq-'+idx+'-'+i),rc=document.getElementById('rc-'+idx+'-'+i);
+    if(opt)opt.classList.toggle('selected',i===optIdx);
+    if(rc)rc.className='radio-circle'+(i===optIdx?' checked':'');
+  });
+  document.getElementById('mcqCheckBtn-'+idx).disabled=false;
+}
+function checkMCQ(idx) {
+  const st=SLIDE_STATE[idx],d=SLIDES[idx];if(st.selectedIndex===null)return;
+  const ok=st.selectedIndex===d.correctIndex;
+  const res=document.getElementById('mcqResult-'+idx);
+  if(ok){
+    st.checked=true;
+    d.options.forEach((_,i)=>{
+      const opt=document.getElementById('mcq-'+idx+'-'+i),rc=document.getElementById('rc-'+idx+'-'+i);
+      if(!opt||!rc)return;
+      opt.classList.add('locked');opt.onclick=null;opt.classList.remove('selected');
+      if(i===d.correctIndex){opt.classList.add('correct');rc.className='radio-circle correct-check';}
+      else rc.className='radio-circle';
+    });
+    res.innerHTML='<div class="correct-badge">✓ Correct! Well done.</div>';
+    document.getElementById('mcqCheckBtn-'+idx).disabled=true;
+    unlockNext(idx);
+  } else {
+    // Wrong — highlight selected red, let student try again
+    d.options.forEach((_,i)=>{
+      const opt=document.getElementById('mcq-'+idx+'-'+i),rc=document.getElementById('rc-'+idx+'-'+i);
+      if(!opt||!rc)return;
+      if(i===st.selectedIndex){opt.classList.add('wrong');rc.className='radio-circle wrong-x';}
+    });
+    res.innerHTML='<div class="wrong-msg">✗ Incorrect — try again.</div>';
+    // Reset so student can re-select after a moment
+    setTimeout(()=>{
+      const opt=document.getElementById('mcq-'+idx+'-'+st.selectedIndex);
+      const rc=document.getElementById('rc-'+idx+'-'+st.selectedIndex);
+      if(opt){opt.classList.remove('wrong','selected');}
+      if(rc){rc.className='radio-circle';}
+      st.selectedIndex=null;
+      document.getElementById('mcqCheckBtn-'+idx).disabled=true;
+      res.innerHTML='<div class="wrong-msg">✗ Incorrect — select another answer.</div>';
+    },1200);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 9 — EDIT MODE & OPERATIONS
+// ══════════════════════════════════════════════════════════════
+function toggleEditMode() {
+  editModeActive=!editModeActive;
+  document.body.classList.toggle('edit-mode',editModeActive);
+  const btn=document.getElementById('editModeBtn');
+  btn.classList.toggle('active',editModeActive);
+  btn.textContent=editModeActive?'✕ Exit Edit Mode':'✏ Edit Mode';
+}
+
+function undoSlideEdit(i) {
+  const prev=SLIDE_HISTORY[i]; if(!prev)return;
+  delete SLIDE_HISTORY[i]; resetSlideState(i); SLIDES[i]=prev;
+  renderSlide(i); updateModifiedBanner(i); buildSidebar(); updateMainNav();
+}
+
+function applySlideEdit(i,newData) {
+  if(!SLIDE_HISTORY[i]) SLIDE_HISTORY[i]=JSON.parse(JSON.stringify(SLIDES[i]));
+  resetSlideState(i); SLIDES[i]=newData;
+  renderSlide(i); updateModifiedBanner(i); buildSidebar(); updateMainNav();
+  goToSlide(i); // navigate to the modified slide
+}
+
+function updateModifiedBanner(i) {
+  const card=document.querySelector('#slide-'+i+' .card'); if(!card)return;
+  const existing=card.querySelector('.modified-banner'); if(existing)existing.remove();
+  if(SLIDE_HISTORY[i]) {
+    const banner=document.createElement('div');
+    banner.className='modified-banner';
+    banner.innerHTML=`<span class="modified-banner-text">⚠ Teacher-modified slide<span>This slide has been edited and differs from the original</span></span><button class="modified-revert-btn" onclick="undoSlideEdit(${i})">↩ Revert to original</button>`;
+    card.insertBefore(banner,card.firstChild);
+  }
+}
+
+function insertSlideAt(afterIdx,newData) {
+  const pos=afterIdx+1;
+  shiftStateKeys(pos,+1);
+  SLIDES.splice(pos,0,newData);
+  initSlideState(pos);
+  if(currentSlide>=pos)currentSlide++;
+  buildAllDOM(); goToSlide(pos);
+}
+
+function toggleHideSlide(i) {
+  SLIDES[i]._hidden = !SLIDES[i]._hidden;
+  // If currently viewing a hidden slide, jump to next visible
+  if (SLIDES[i]._hidden && currentSlide === i) {
+    const next = nextVisibleSlide(i);
+    if (next !== -1) goToSlide(next);
+  }
+  // Update the slide div visibility
+  const el = document.getElementById('slide-' + i);
+  if (el) el.style.display = SLIDES[i]._hidden ? 'none' : '';
+  buildSidebar(); updateMainNav();
+}
+
+function nextVisibleSlide(from) {
+  for (let j = from + 1; j < SLIDES.length; j++) if (!SLIDES[j]._hidden) return j;
+  for (let j = from - 1; j >= 0; j--) if (!SLIDES[j]._hidden) return j;
+  return from; // fallback if all hidden
+}
+
+function deleteSlide(i) {
+  if(SLIDES.length<=1)return;
+  const title=SLIDES[i].title||SLIDES[i].type;
+  if(!confirm(`Delete slide ${i+1} "${title}"?`))return;
+  shiftStateKeys(i+1,-1);delete SLIDE_STATE[i];delete SLIDE_HISTORY[i];
+  SLIDES.splice(i,1);
+  if(currentSlide>=SLIDES.length)currentSlide=SLIDES.length-1;
+  buildAllDOM(); goToSlide(currentSlide);
+}
+
+function undoNewLesson() {
+  if(!LESSON_HISTORY)return;
+  SLIDES=LESSON_HISTORY.slides; LESSON_TITLE=LESSON_HISTORY.title;
+  LESSON_HISTORY=null; SLIDE_STATE={}; SLIDE_HISTORY={};
+  SLIDES.forEach((_,i)=>initSlideState(i)); currentSlide=0;
+  buildAllDOM();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 10 — EDIT SLIDE MODAL
+// ══════════════════════════════════════════════════════════════
+function openEditModal(i) {
+  editTargetSlide=i; editInsertAfter=null;
+  const d=SLIDES[i];
+  document.getElementById('editModalTitle').textContent=`Edit Slide ${i+1} — ${d.title||d.type}`;
+  document.getElementById('editPromptLabel').textContent='Describe your change';
+  document.getElementById('editPromptArea').placeholder='e.g. Change the practice equation to z − 5 = 12';
+  document.getElementById('editPromptArea').value='';
+  document.getElementById('editStatus').style.display='none';
+  document.getElementById('editGenerateBtn').disabled=false;
+  document.getElementById('editGenerateBtn').textContent='Generate ›';
+  const sel=document.getElementById('editTemplateSelect');
+  for(let j=0;j<sel.options.length;j++){if(sel.options[j].value===d.type){sel.selectedIndex=j;break;}}
+  // Show current slide preview
+  const currentSection=document.getElementById('editCurrentSlide');
+  const currentFrame=document.getElementById('editCurrentFrame');
+  const fn=RENDERERS[d.type];
+  currentFrame.innerHTML=fn?`<div class="card">${fn(d,-1)}</div>`:`<div class="card"><pre style="white-space:pre-wrap;font-size:.82rem">${JSON.stringify(d,null,2)}</pre></div>`;
+  currentFrame.classList.remove('collapsed');
+  document.getElementById('editCurrentToggle').textContent='Collapse';
+  currentSection.style.display='';
+  syncApiKey('edit'); document.getElementById('editModal').classList.add('open');
+}
+
+function openInsertModal(afterIdx) {
+  editInsertAfter=afterIdx; editTargetSlide=null;
+  document.getElementById('editCurrentSlide').style.display='none';
+  document.getElementById('editModalTitle').textContent=`Add Slide After Slide ${afterIdx+1}`;
+  document.getElementById('editPromptLabel').textContent='Describe the new slide';
+  document.getElementById('editPromptArea').placeholder='e.g. Add a multiple choice question about solving x + 7 = 3';
+  document.getElementById('editPromptArea').value='';
+  document.getElementById('editTemplateSelect').value='';
+  document.getElementById('editStatus').style.display='none';
+  document.getElementById('editGenerateBtn').disabled=false;
+  document.getElementById('editGenerateBtn').textContent='Generate ›';
+  syncApiKey('edit'); document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  document.getElementById('editPreviewSection').classList.remove('visible');
+  document.getElementById('editPreviewFrame').innerHTML='';
+  document.getElementById('editCurrentSlide').style.display='none';
+  document.getElementById('editCurrentFrame').innerHTML='';
+  document.getElementById('editFormSection').style.display='';
+  document.getElementById('editGenerateBtn').disabled=false;
+  document.getElementById('editGenerateBtn').textContent='Generate ›';
+  editTargetSlide=null; editInsertAfter=null; pendingSlideEdit=null;
+}
+
+function toggleCurrentPreview() {
+  const frame=document.getElementById('editCurrentFrame');
+  const btn=document.getElementById('editCurrentToggle');
+  frame.classList.toggle('collapsed');
+  btn.textContent=frame.classList.contains('collapsed')?'Expand':'Collapse';
+}
+
+async function runSlideGenerate() {
+  const apiKey=getApiKey('edit');
+  if(!apiKey){showModalStatus('edit','Please enter your Gemini API key.','error');return;}
+  const prompt=document.getElementById('editPromptArea').value.trim();
+  if(!prompt){showModalStatus('edit','Please describe the slide content.','error');return;}
+  if(document.getElementById('editApiStore').checked)saveApiKey(apiKey);
+  const btn=document.getElementById('editGenerateBtn');
+  btn.disabled=true; btn.textContent='Generating…';
+  const forced=document.getElementById('editTemplateSelect').value;
+  const current=editTargetSlide!==null?SLIDES[editTargetSlide]:null;
+  const sys=buildSlideSystemPrompt(forced,current);
+  const usr=editTargetSlide!==null
+    ?`Teacher instruction: "${prompt}"${forced?'\nUse template: '+forced:'\nChoose the best template.'}`
+    :`Create a new slide: "${prompt}"${forced?'\nUse template: '+forced:'\nChoose the best template.'}`;
+  try {
+    const json=await callGemini(apiKey,sys,usr,s=>showModalStatus('edit',s,'loading'));
+    const v=validateSlide(json);
+    if(v.error){showModalStatus('edit','Error: '+v.error,'error');btn.disabled=false;btn.textContent='Generate ›';return;}
+    // Store pending and show preview
+    pendingSlideEdit={isInsert:editTargetSlide===null,targetSlide:editTargetSlide,insertAfter:editInsertAfter,data:v.data};
+    showSlidePreview(v.data);
+  } catch(e){showModalStatus('edit','Error: '+e.message,'error');btn.disabled=false;btn.textContent='Generate ›';}
+}
+
+function showSlidePreview(data) {
+  document.getElementById('editFormSection').style.display='none';
+  document.getElementById('editStatus').style.display='none';
+  const preview=document.getElementById('editPreviewSection');
+  preview.classList.add('visible');
+  const frame=document.getElementById('editPreviewFrame');
+  // Render slide into a temp wrapper
+  const fn=RENDERERS[data.type];
+  frame.innerHTML=`<div class="card">${fn?fn(data,-1):JSON.stringify(data,null,2)}</div>`;
+}
+
+function discardSlidePreview() {
+  pendingSlideEdit=null;
+  document.getElementById('editPreviewSection').classList.remove('visible');
+  document.getElementById('editPreviewFrame').innerHTML='';
+  document.getElementById('editFormSection').style.display='';
+  const btn=document.getElementById('editGenerateBtn');
+  btn.disabled=false; btn.textContent='Generate ›';
+}
+
+function acceptSlidePreview() {
+  if(!pendingSlideEdit)return;
+  const {isInsert,targetSlide,insertAfter,data}=pendingSlideEdit;
+  pendingSlideEdit=null;
+  if(!isInsert)applySlideEdit(targetSlide,data);
+  else insertSlideAt(insertAfter,data);
+  closeEditModal();
+}
+
+function buildSlideSystemPrompt(forced,current) {
+  return `You are an educational content generator for a math lesson app.
+Return ONLY valid JSON. No markdown, no code fences, no explanation.
+Use ONLY one of these template types: ${Object.keys(SCHEMAS).join(', ')}.
+
+TEMPLATE SCHEMAS:
+${JSON.stringify(SCHEMAS,null,2)}
+
+RULES:
+- dropdown-practice: 3-4 options per sentence, exactly one correct.
+- drag-match: 3-5 pairs, mathematically correct.
+- multiple-choice: exactly 4 options, correctIndex 0-3.
+- Use <i>x</i> for variables, <h>c</h> for highlights in presentation-tabs.
+- Grade 6-8 algebra.
+${current?'CURRENT SLIDE:\n'+JSON.stringify(current,null,2):''}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 11 — NEW LESSON MODAL
+// ══════════════════════════════════════════════════════════════
+function openNewLessonModal() {
+  document.getElementById('nlTopic').value=''; document.getElementById('nlExtra').value='';
+  document.getElementById('nlStatus').style.display='none';
+  document.getElementById('nlGenerateBtn').disabled=false;
+  document.getElementById('nlGenerateBtn').textContent='Generate Lesson ›';
+  syncApiKey('nl'); document.getElementById('newLessonModal').classList.add('open');
+}
+function closeNewLessonModal() { document.getElementById('newLessonModal').classList.remove('open'); }
+
+async function runNewLesson() {
+  const apiKey=getApiKey('nl');
+  if(!apiKey){showModalStatus('nl','Please enter your Gemini API key.','error');return;}
+  const topic=document.getElementById('nlTopic').value.trim();
+  if(!topic){showModalStatus('nl','Please enter a lesson topic.','error');return;}
+  if(document.getElementById('nlApiStore').checked)saveApiKey(apiKey);
+  const grade=document.getElementById('nlGrade').value;
+  const nSlides=parseInt(document.getElementById('nlSlides').value);
+  const extra=document.getElementById('nlExtra').value.trim();
+  const btn=document.getElementById('nlGenerateBtn');
+  btn.disabled=true; btn.textContent='Generating…';
+  const sys=buildLessonSystemPrompt(grade,nSlides);
+  const usr=`Create a complete lesson about: "${topic}" for ${grade}.\nTotal slides: ${nSlides} (including intro and summary).\n${extra?'Additional: '+extra:''}`;
+  try {
+    const json=await callGemini(apiKey,sys,usr,s=>showModalStatus('nl',s,'loading'));
+    if(!json.lessonTitle||!Array.isArray(json.slides)){showModalStatus('nl','Error: Missing lessonTitle or slides array.','error');btn.disabled=false;btn.textContent='Generate Lesson ›';return;}
+    for(const s of json.slides){const v=validateSlide(s);if(v.error){showModalStatus('nl','Invalid slide: '+v.error,'error');btn.disabled=false;btn.textContent='Generate Lesson ›';return;}}
+    LESSON_HISTORY={title:LESSON_TITLE,slides:JSON.parse(JSON.stringify(SLIDES))};
+    LESSON_TITLE=json.lessonTitle; SLIDES=json.slides;
+    SLIDE_STATE={}; SLIDE_HISTORY={};
+    SLIDES.forEach((_,i)=>initSlideState(i)); currentSlide=0;
+    buildAllDOM(); closeNewLessonModal();
+  } catch(e){showModalStatus('nl','Error: '+e.message,'error');btn.disabled=false;btn.textContent='Generate Lesson ›';}
+}
+
+function buildLessonSystemPrompt(grade,nSlides) {
+  return `You are an educational content generator for a math lesson app.
+Return ONLY valid JSON with keys "lessonTitle" (string) and "slides" (array).
+Each slide uses one of: intro, ${Object.keys(SCHEMAS).join(', ')}, summary.
+
+SCHEMAS: ${JSON.stringify(SCHEMAS,null,2)}
+INTRO schema: { "type":"intro","emoji":"string","emojiBackground":"hex","cardBackground":"hex","title":"string" }
+SUMMARY schema: { "type":"summary","emoji":"string","title":"string","subtitle":"string","takeaways":["string"] }
+
+RULES:
+- First slide = intro. Last slide = summary. Total = ${nSlides}.
+- Grade: ${grade}. Mathematically correct.
+- dropdown-practice: 3-4 options, one correct. multiple-choice: exactly 4 options, correctIndex 0-3. drag-match: 3-5 correct pairs.
+- Return only the JSON object.`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 12 — AI & UTILITIES
+// ══════════════════════════════════════════════════════════════
+async function callGemini(apiKey,sys,usr,onStatus) {
+  const MODELS=['gemini-2.5-flash','gemini-2.5-flash-preview-04-17','gemini-2.5-pro','gemini-2.0-flash','gemini-2.0-flash-lite'];
+  const body={systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:usr}]}],generationConfig:{responseMimeType:'application/json',temperature:0.4,maxOutputTokens:4096}};
+  for(const model of MODELS){
+    if(onStatus)onStatus('⏳ Trying '+model+'…');
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    let res;
+    try{res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+    catch(e){throw new Error('Network error — check your connection.');}
+    if(res.status===404)continue;
+    if((res.status===429||res.status===503)&&model!==MODELS[MODELS.length-1]){if(onStatus)onStatus('⏳ '+model+' rate-limited, trying next…');await new Promise(r=>setTimeout(r,5000));continue;}
+    if(!res.ok){const m={400:'Bad request — check your prompt.',403:'Invalid API key.',429:'Rate limit. Wait 30s.',503:'Service unavailable.'};throw new Error(m[res.status]||'HTTP '+res.status);}
+    const data=await res.json();
+    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!text)throw new Error('Empty response from Gemini.');
+    return JSON.parse(text);
+  }
+  throw new Error('No models responded. Wait 30 seconds and retry.');
+}
+
+function validateSlide(json) {
+  if(typeof json!=='object'||!json)return{error:'Not a JSON object.'};
+  const all=[...Object.keys(SCHEMAS),'intro','video','summary'];
+  if(!json.type||!all.includes(json.type))return{error:`Unknown type "${json.type}".`};
+  const req={'presentation-tabs':['title','tabs'],'worked-example-tabs':['title','tabs'],'dropdown-practice':['title','sentences'],'stepped-table':['title','sections'],'drag-match':['title','pairs'],'multiple-choice':['title','question','options','correctIndex'],'intro':['title'],'summary':['title','takeaways']};
+  const missing=(req[json.type]||[]).filter(f=>!(f in json));
+  if(missing.length)return{error:`Missing for ${json.type}: ${missing.join(', ')}`};
+  if(json.type==='multiple-choice'&&(!Array.isArray(json.options)||json.options.length!==4))return{error:'multiple-choice needs exactly 4 options.'};
+  return{data:json};
+}
+
+function getApiKey(p){return document.getElementById(p==='nl'?'nlApiKey':'editApiKey').value.trim()||localStorage.getItem('gemini_api_key')||'';}
+function saveApiKey(k){localStorage.setItem('gemini_api_key',k);}
+function syncApiKey(p){const k=localStorage.getItem('gemini_api_key');if(!k)return;document.getElementById(p==='nl'?'nlApiKey':'editApiKey').value=k;document.getElementById(p==='nl'?'nlApiStore':'editApiStore').checked=true;}
+function showModalStatus(p,msg,type){const el=document.getElementById(p==='nl'?'nlStatus':'editStatus');el.textContent=msg;el.className='modal-status'+(type?' '+type:'');el.style.display='block';}
+
+function shuffle(arr,seed){const a=[...arr];let h=0;for(let i=0;i<String(seed).length;i++)h=Math.imul(31,h)+String(seed).charCodeAt(i)|0;const rand=()=>{h^=h<<13;h^=h>>17;h^=h<<5;return(h>>>0)/0x100000000;};for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 13 — PRESENT MODE & SHOW ANSWERS
+// ══════════════════════════════════════════════════════════════
+let showAnswersMode = false;
+
+function toggleShowAnswers() {
+  showAnswersMode = !showAnswersMode;
+  document.getElementById('saTrack').classList.toggle('on', showAnswersMode);
+  document.body.classList.toggle('show-answers-active', showAnswersMode);
+  SLIDES.forEach((d, i) => {
+    if (['dropdown-practice','drag-match','multiple-choice'].includes(d.type)) {
+      renderSlide(i);
+      updateModifiedBanner(i);
+      if (showAnswersMode) revealSlideAnswers(i);
+    }
+  });
+  updateMainNav();
+}
+
+function revealSlideAnswers(i) {
+  const d = SLIDES[i];
+  if (d.type === 'dropdown-practice') {
+    d.sentences.forEach(s => {
+      const sel = document.getElementById('sel-'+i+'-'+s.id);
+      const fi  = document.getElementById('fi-'+i+'-'+s.id);
+      if (!sel) return;
+      sel.value = s.correct; sel.classList.add('feedback-correct'); sel.disabled = true;
+      if (fi) { fi.textContent = '✓'; fi.style.color = '#2ecc9a'; }
+    });
+    const cb = document.getElementById('checkBtn-'+i); if (cb) cb.style.display='none';
+    const r  = document.getElementById('dropResult-'+i); if (r) r.innerHTML='';
+  }
+  if (d.type === 'multiple-choice') {
+    d.options.forEach((_, j) => {
+      const opt = document.getElementById('mcq-'+i+'-'+j);
+      const rc  = document.getElementById('rc-'+i+'-'+j);
+      if (!opt || !rc) return;
+      opt.classList.add('locked'); opt.onclick = null; opt.classList.remove('selected');
+      if (j === d.correctIndex) { opt.classList.add('correct'); rc.className='radio-circle correct-check'; }
+      else rc.className='radio-circle';
+    });
+    const cb = document.getElementById('mcqCheckBtn-'+i); if (cb) cb.style.display='none';
+    const r  = document.getElementById('mcqResult-'+i);   if (r) r.innerHTML='';
+  }
+  if (d.type === 'drag-match') {
+    const st = SLIDE_STATE[i];
+    if (!st) return;
+    // Clear existing pairs, show correct ones
+    d.pairs.forEach((_, j) => {
+      st.userPairs[j] = j;
+      const eqEl  = document.getElementById('eq-'+i+'-'+j);
+      const solEl = document.getElementById('sol-'+i+'-'+j);
+      if (eqEl)  { eqEl.className  = 'match-item pair-'+j+' locked'; eqEl.onclick  = null; }
+      if (solEl) { solEl.className = 'match-item pair-'+j+' locked'; solEl.onclick = null; }
+    });
+    drawMatchConnectors(i);
+    const cb = document.getElementById('matchCheckBtn-'+i); if (cb) cb.style.display='none';
+    const r  = document.getElementById('matchResult-'+i);   if (r) r.innerHTML='';
+  }
+}
+
+// Inject show-answers banner into interactive slide cards
+function injectShowAnswersBanner(i) {
+  const card = document.querySelector('#slide-'+i+' .card'); if (!card) return;
+  if (card.querySelector('.show-answers-banner')) return;
+  const banner = document.createElement('div');
+  banner.className = 'show-answers-banner';
+  banner.textContent = '👁 Teacher preview — answers are visible. Students see this as an interactive question.';
+  card.insertBefore(banner, card.firstChild);
+}
+
+function enterPresentMode() {
+  document.body.classList.add('present-mode');
+  // ensure Lesson tab is active when entering
+  switchMainTab('lesson');
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+}
+
+function exitPresentMode() {
+  document.body.classList.remove('present-mode');
+  switchMainTab('lesson');
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 14 — ANALYTICS
+// ══════════════════════════════════════════════════════════════
+function switchMainTab(tab) {
+  const isLesson = tab === 'lesson';
+  document.getElementById('tabLesson').classList.toggle('active', isLesson);
+  document.getElementById('tabAnalytics').classList.toggle('active', !isLesson);
+  document.querySelector('.app-layout').style.display = isLesson ? 'flex' : 'none';
+  const av = document.getElementById('analyticsView');
+  if (isLesson) { av.classList.remove('active'); }
+  else { av.classList.add('active'); renderAnalytics(); }
+}
+
+function renderAnalytics() {
+  const S = MOCK_STUDENTS;
+  const total = SLIDES.length;
+
+  // ── Overall stats ──
+  const completed  = S.filter(s => s.reached >= total).length;
+  const inProgress = S.filter(s => s.reached > 0 && s.reached < total).length;
+  const notStarted = S.filter(s => s.reached === 0).length;
+  const avgPct = Math.round(S.reduce((a,s)=>a+s.reached,0) / S.length / total * 100);
+
+  // ── Find interactive slide indices dynamically ──
+  const ddIdx  = SLIDES.findIndex(s => s.type === 'dropdown-practice');
+  const matchIdx = SLIDES.findIndex(s => s.type === 'drag-match');
+  const mcqIdx = SLIDES.findIndex(s => s.type === 'multiple-choice');
+
+  // ── Dropdown analysis ──
+  const ddStudents = S.filter(s => s.qDropdown);
+  const ddN = ddStudents.length;
+  const ddSentences = ddIdx >= 0 ? SLIDES[ddIdx].sentences : [];
+  const ddSentHTML = ddSentences.map(sent => {
+    const wrongCount = ddStudents.filter(s => s.qDropdown.wrongFirst.includes(sent.id)).length;
+    const correctPct = ddN ? Math.round((ddN - wrongCount) / ddN * 100) : 0;
+    const barClass = correctPct >= 75 ? 'good' : correctPct >= 50 ? 'mid' : 'poor';
+    const preview = (sent.before||'') + ' ___ ' + (sent.after||'');
+    return `<div class="an-sent-row">
+      <div class="an-sent-label">"${preview.trim()}"  ·  Correct answer: <strong>${sent.correct}</strong></div>
+      <div class="an-sent-bar-wrap">
+        <div class="an-sent-bar-track"><div class="an-sent-bar-fill ${barClass}" style="width:${correctPct}%"></div></div>
+        <span class="an-sent-pct" style="color:${barClass==='good'?'#1a7a3a':barClass==='mid'?'#7a5a00':'#c0392b'}">${correctPct}%</span>
+      </div>
+      <div class="an-sent-note">${correctPct}% correct on first attempt · ${wrongCount} student${wrongCount!==1?'s':''} chose a wrong answer initially</div>
+    </div>`;
+  }).join('');
+  const ddAttempts = [1,2,3].map(n => {
+    const c = ddStudents.filter(s => s.qDropdown.attempts === n).length;
+    return c > 0 ? `<span class="an-attempt-pill a${n}">${n === 3 ? '3+' : n} attempt${n>1?'s':''}: ${c} student${c!==1?'s':''}</span>` : '';
+  }).join('');
+
+  // ── Match analysis ──
+  const matchStudents = S.filter(s => s.qMatch);
+  const matchN = matchStudents.length;
+  const matchAttempts = [1,2,3].map(n => {
+    const c = matchStudents.filter(s => s.qMatch.attempts === n).length;
+    return c > 0 ? `<span class="an-attempt-pill a${n}">${n === 3 ? '3+' : n} attempt${n>1?'s':''}: ${c} student${c!==1?'s':''}</span>` : '';
+  }).join('');
+  const matchAvgAttempts = matchN ? (matchStudents.reduce((a,s)=>a+s.qMatch.attempts,0)/matchN).toFixed(1) : '-';
+
+  // ── MCQ analysis ──
+  const mcqStudents = S.filter(s => s.qMCQ);
+  const mcqN = mcqStudents.length;
+  const mcqData = mcqIdx >= 0 ? SLIDES[mcqIdx] : null;
+  const mcqCorrectIdx = mcqData ? mcqData.correctIndex : 0;
+  const mcqOptHTML = mcqData ? mcqData.options.map((opt, i) => {
+    const count = mcqStudents.filter(s => s.qMCQ.first === i).length;
+    const pct = mcqN ? Math.round(count / mcqN * 100) : 0;
+    const isCorrect = i === mcqCorrectIdx;
+    const letter = String.fromCharCode(65 + i);
+    return `<div class="an-opt-row">
+      <span class="an-opt-label" style="color:${isCorrect?'#1a7a3a':'#888'}">${letter}</span>
+      <div class="an-opt-text">${opt.lines[0]}</div>
+      <div class="an-opt-bar-track"><div class="an-opt-bar-fill ${isCorrect?'correct':'wrong'}" style="width:${pct}%"></div></div>
+      <span class="an-opt-count">${count} student${count!==1?'s':''} · ${pct}%</span>
+      ${isCorrect ? '<span class="an-opt-correct-tag">✓ Correct</span>' : ''}
+    </div>`;
+  }).join('') : '';
+  const mcqFirstCorrect = mcqStudents.filter(s => s.qMCQ.first === mcqCorrectIdx).length;
+
+  // ── Students table ──
+  const studentRowsHTML = [...S].sort((a,b) => b.reached - a.reached).map(s => {
+    const pct = Math.round(s.reached / total * 100);
+    const status = s.reached >= total ? 'completed' : s.reached > 0 ? 'in-progress' : 'not-started';
+    const badge  = s.reached >= total ? 'Completed' : s.reached > 0 ? `Slide ${s.reached}/${total}` : 'Not Started';
+    const dot = (q, label) => {
+      if (!q) return `<div class="an-dot na" title="${label}: not reached">—</div>`;
+      return `<div class="an-dot pass" title="${label}: passed">✓</div>`;
+    };
+    return `<div class="an-student-row">
+      <div class="an-avatar" style="background:${s.color}">${s.initials}</div>
+      <div class="an-name">${s.name}</div>
+      <div class="an-q-dots" title="Q1=Dropdown, Q2=Match, Q3=MCQ">
+        ${dot(s.qDropdown,'Q1 Dropdown')}${dot(s.qMatch,'Q2 Match')}${dot(s.qMCQ,'Q3 MCQ')}
+      </div>
+      <div class="an-progress-wrap">
+        <div class="an-progress-track"><div class="an-progress-fill" style="width:${pct}%"></div></div>
+        <span class="an-progress-label">${badge}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('analyticsView').innerHTML = `
+    <div class="an-card">
+      <div class="an-lesson-title">${LESSON_TITLE}</div>
+      <div class="an-stats-row">
+        <span class="an-stat completed">✓ ${completed} Completed</span>
+        <span class="an-stat-sep">|</span>
+        <span class="an-stat in-progress">↗ ${inProgress} In Progress</span>
+        <span class="an-stat-sep">|</span>
+        <span class="an-stat not-started">○ ${notStarted} Not Started</span>
+      </div>
+      <div class="an-class-bar-label">Class average progress — ${avgPct}%</div>
+      <div class="an-class-bar-track"><div class="an-class-bar-fill" style="width:${avgPct}%"></div></div>
+    </div>
+
+    ${ddIdx >= 0 ? `<div class="an-card">
+      <div class="an-q-header">
+        <div class="an-q-icon" style="background:#ffecd0;color:#8a4a00">🎯</div>
+        <div><div class="an-q-title">${SLIDES[ddIdx].title}</div><div class="an-q-slide">Slide ${ddIdx+1} · Dropdown Fill-in</div></div>
+      </div>
+      <div class="an-q-meta"><strong>${ddN}</strong> of ${S.length} students attempted this question</div>
+      ${ddSentHTML}
+      <div class="an-attempts">${ddAttempts}</div>
+    </div>` : ''}
+
+    ${matchIdx >= 0 ? `<div class="an-card">
+      <div class="an-q-header">
+        <div class="an-q-icon" style="background:#f0e0ff;color:#5a007a">🔗</div>
+        <div><div class="an-q-title">${SLIDES[matchIdx].title}</div><div class="an-q-slide">Slide ${matchIdx+1} · Click-to-Match</div></div>
+      </div>
+      <div class="an-q-meta"><strong>${matchN}</strong> of ${S.length} students attempted · Average <strong>${matchAvgAttempts}</strong> check attempts before passing</div>
+      <div class="an-attempts">${matchAttempts}</div>
+    </div>` : ''}
+
+    ${mcqIdx >= 0 && mcqData ? `<div class="an-card">
+      <div class="an-q-header">
+        <div class="an-q-icon" style="background:#fce4ec;color:#880e4f">❓</div>
+        <div><div class="an-q-title">${mcqData.title}</div><div class="an-q-slide">Slide ${mcqIdx+1} · Multiple Choice</div></div>
+      </div>
+      <div class="an-q-meta"><strong>${mcqN}</strong> of ${S.length} students attempted · <strong>${mcqFirstCorrect}/${mcqN}</strong> (${mcqN?Math.round(mcqFirstCorrect/mcqN*100):0}%) correct on first selection</div>
+      <p style="font-size:.85rem;font-weight:700;color:#444;margin-bottom:10px">${mcqData.question}</p>
+      ${mcqOptHTML}
+    </div>` : ''}
+
+    <div class="an-card">
+      <div class="an-section-title">All Students <span style="font-weight:400;color:#888;font-size:.85rem">· Q1 = Dropdown, Q2 = Match, Q3 = MCQ</span></div>
+      ${studentRowsHTML}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION 14 — BOOTSTRAP
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  SLIDES.forEach((_,i)=>initSlideState(i));
+  buildAllDOM();
+  window.addEventListener('resize',()=>{SLIDES.forEach((d,i)=>{if(d.type==='drag-match')drawMatchConnectors(i);});});
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape' && document.body.classList.contains('present-mode')) exitPresentMode();
+  });
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement && document.body.classList.contains('present-mode')) exitPresentMode();
+  });
+});
+</script>
+</body>
+</html>

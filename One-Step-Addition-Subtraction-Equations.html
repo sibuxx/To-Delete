@@ -119,6 +119,8 @@ body.show-answers-active .show-answers-banner { display:block; }
 .si-btn.si-edit:hover { background: #d0eaf8; color: #1a5c8a; }
 .si-btn.si-del:hover  { background: #fde0e0; color: #c0392b; }
 .si-btn.si-hide:hover { background: #f0e8ff; color: #5a007a; }
+.si-btn.si-hide { position:relative; }
+.si-btn.si-hide.is-hidden::after { content:''; position:absolute; top:45%; left:15%; width:70%; height:2px; background:#c0392b; transform:rotate(-45deg); border-radius:1px; }
 .slide-item.hidden-slide { opacity: .45; }
 .slide-item.hidden-slide .slide-item-title { text-decoration: line-through; }
 
@@ -298,9 +300,18 @@ p  { line-height:1.6; margin:4px 0; }
 .modal-preview-section { margin-top:16px; border-top:1px solid #e0e8e4; padding-top:16px; display:none; }
 .modal-preview-section.visible { display:block; }
 .modal-preview-frame {
-  border:1.5px solid #dde8e4; border-radius:10px; padding:20px 24px;
-  max-height:360px; overflow-y:auto; background:#eef7f4;
+  border:1.5px solid #dde8e4; border-radius:10px; padding:16px 20px;
+  background:#eef7f4; overflow:hidden;
 }
+.modal-preview-frame .card { margin-bottom:0; box-shadow:none; padding:14px; font-size:.78rem; transform:scale(.85); transform-origin:top left; width:117.6%; }
+.modal-preview-frame .card .slide-title { font-size:1rem; margin-bottom:4px; }
+.modal-preview-frame .card .tab-btn { font-size:.75rem; padding:6px 10px; }
+.modal-preview-frame .card .mcq-grid { gap:6px; }
+.modal-preview-frame .card .mcq-option { padding:8px 10px; font-size:.8rem; }
+.modal-preview-frame .card .match-item { padding:6px 10px; font-size:.8rem; }
+.modal-preview-frame .card .sentence-line { font-size:.85rem; line-height:1.8; margin:4px 0; }
+.modal-preview-frame .card .check-btn { padding:6px 14px; font-size:.8rem; }
+.modal-preview-frame .card .formula-table { font-size:.82rem; }
 .modal-preview-frame .card { margin-bottom:0; }
 
 /* Current slide preview in edit modal */
@@ -308,13 +319,21 @@ p  { line-height:1.6; margin:4px 0; }
 .modal-current-label { font-size:.82rem; font-weight:700; color:#888; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
 .modal-current-frame {
   border:1.5px solid #e0e8e4; border-radius:10px; padding:16px 20px;
-  max-height:280px; overflow-y:auto; background:#f8fbf9; position:relative;
+  background:#f8fbf9; position:relative; overflow:hidden;
 }
-.modal-current-frame .card { margin-bottom:0; box-shadow:none; padding:16px; font-size:.88rem; }
+.modal-current-frame .card { margin-bottom:0; box-shadow:none; padding:14px; font-size:.78rem; transform:scale(.85); transform-origin:top left; width:117.6%; }
+.modal-current-frame .card .slide-title { font-size:1rem; margin-bottom:4px; }
+.modal-current-frame .card .slide-subtitle { font-size:.78rem; margin-bottom:8px; }
+.modal-current-frame .card .tab-btn { font-size:.75rem; padding:6px 10px; }
+.modal-current-frame .card .eq-box { font-size:.95rem; padding:8px 12px; margin:6px auto; }
+.modal-current-frame .card .mcq-grid { gap:6px; }
+.modal-current-frame .card .mcq-option { padding:8px 10px; font-size:.8rem; }
+.modal-current-frame .card .match-item { padding:6px 10px; font-size:.8rem; }
+.modal-current-frame .card .sentence-line { font-size:.85rem; line-height:1.8; margin:4px 0; }
+.modal-current-frame .card .check-btn { padding:6px 14px; font-size:.8rem; }
+.modal-current-frame .card .formula-table { font-size:.82rem; }
 .modal-current-collapse { background:none; border:none; font-size:.78rem; color:#00a896; font-weight:700; cursor:pointer; margin-left:auto; }
 .modal-current-collapse:hover { text-decoration:underline; }
-.modal-current-frame.collapsed { max-height:60px; overflow:hidden; }
-.modal-current-frame.collapsed::after { content:''; position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent,#f8fbf9); pointer-events:none; }
 
 /* ══ MODALS ══ */
 .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:1000; }
@@ -508,14 +527,7 @@ p  { line-height:1.6; margin:4px 0; }
         <label class="modal-label" id="editPromptLabel">Describe your change</label>
         <textarea class="modal-textarea" id="editPromptArea" placeholder="e.g. Change the practice equation to z − 5 = 12"></textarea>
       </div>
-      <div class="modal-field">
-        <label class="modal-label">Gemini API Key <span style="font-weight:400;color:#888">(free at aistudio.google.com)</span></label>
-        <div class="modal-api-row">
-          <input type="password" class="modal-input" id="editApiKey" placeholder="AIza...">
-          <label class="modal-check-label"><input type="checkbox" id="editApiStore"> Store</label>
-        </div>
-      </div>
-      <div class="modal-btn-row">
+        <div class="modal-btn-row">
         <button class="modal-cancel-btn" onclick="closeEditModal()">Cancel</button>
         <button class="modal-action-btn" id="editGenerateBtn" onclick="runSlideGenerate()">Generate ›</button>
       </div>
@@ -563,13 +575,6 @@ p  { line-height:1.6; margin:4px 0; }
     <div class="modal-field">
       <label class="modal-label">Additional requirements (optional)</label>
       <textarea class="modal-textarea" id="nlExtra" placeholder="e.g. Include a real-world word problem, add a matching activity…"></textarea>
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Gemini API Key <span style="font-weight:400;color:#888">(free at aistudio.google.com)</span></label>
-      <div class="modal-api-row">
-        <input type="password" class="modal-input" id="nlApiKey" placeholder="AIza...">
-        <label class="modal-check-label"><input type="checkbox" id="nlApiStore"> Store</label>
-      </div>
     </div>
     <div class="modal-btn-row">
       <button class="modal-cancel-btn" onclick="closeNewLessonModal()">Cancel</button>
@@ -785,7 +790,7 @@ function buildSidebar() {
       </div>
       <div class="slide-item-edit">
         ${isEditable ? `<button class="si-btn si-edit" title="Edit with AI" onclick="event.stopPropagation();openEditModal(${i})">✏</button>` : ''}
-        <button class="si-btn si-hide" title="${isHidden?'Show':'Hide'} slide" onclick="event.stopPropagation();toggleHideSlide(${i})">${isHidden?'👁':'🙈'}</button>
+        <button class="si-btn si-hide ${isHidden?'is-hidden':''}" title="${isHidden?'Show':'Hide'} slide" onclick="event.stopPropagation();toggleHideSlide(${i})">👁</button>
         ${SLIDES.length > 1 ? `<button class="si-btn si-del" title="Delete slide" onclick="event.stopPropagation();deleteSlide(${i})">🗑</button>` : ''}
         ${hasUndo ? `<button class="si-btn" title="Revert to original" onclick="event.stopPropagation();undoSlideEdit(${i})" style="color:#e05a2b">↩ Revert</button>` : ''}
       </div>
@@ -1228,7 +1233,6 @@ async function runSlideGenerate() {
   if(!apiKey){showModalStatus('edit','Please enter your Gemini API key.','error');return;}
   const prompt=document.getElementById('editPromptArea').value.trim();
   if(!prompt){showModalStatus('edit','Please describe the slide content.','error');return;}
-  if(document.getElementById('editApiStore').checked)saveApiKey(apiKey);
   const btn=document.getElementById('editGenerateBtn');
   btn.disabled=true; btn.textContent='Generating…';
   const forced=document.getElementById('editTemplateSelect').value;
@@ -1310,7 +1314,6 @@ async function runNewLesson() {
   if(!apiKey){showModalStatus('nl','Please enter your Gemini API key.','error');return;}
   const topic=document.getElementById('nlTopic').value.trim();
   if(!topic){showModalStatus('nl','Please enter a lesson topic.','error');return;}
-  if(document.getElementById('nlApiStore').checked)saveApiKey(apiKey);
   const grade=document.getElementById('nlGrade').value;
   const nSlides=parseInt(document.getElementById('nlSlides').value);
   const extra=document.getElementById('nlExtra').value.trim();
@@ -1380,9 +1383,10 @@ function validateSlide(json) {
   return{data:json};
 }
 
-function getApiKey(p){return document.getElementById(p==='nl'?'nlApiKey':'editApiKey').value.trim()||localStorage.getItem('gemini_api_key')||'';}
-function saveApiKey(k){localStorage.setItem('gemini_api_key',k);}
-function syncApiKey(p){const k=localStorage.getItem('gemini_api_key');if(!k)return;document.getElementById(p==='nl'?'nlApiKey':'editApiKey').value=k;document.getElementById(p==='nl'?'nlApiStore':'editApiStore').checked=true;}
+const DEFAULT_API_KEY='AIzaSyA2-YrOojhcUmropAKcuRuX7dlhruCxLGQ';
+function getApiKey(){return DEFAULT_API_KEY;}
+function saveApiKey(){}
+function syncApiKey(){}
 function showModalStatus(p,msg,type){const el=document.getElementById(p==='nl'?'nlStatus':'editStatus');el.textContent=msg;el.className='modal-status'+(type?' '+type:'');el.style.display='block';}
 
 function shuffle(arr,seed){const a=[...arr];let h=0;for(let i=0;i<String(seed).length;i++)h=Math.imul(31,h)+String(seed).charCodeAt(i)|0;const rand=()=>{h^=h<<13;h^=h>>17;h^=h<<5;return(h>>>0)/0x100000000;};for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}

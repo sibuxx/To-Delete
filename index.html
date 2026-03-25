@@ -752,6 +752,7 @@ let LESSON_HISTORY = null;
 let editTargetSlide = null;
 let editInsertAfter = null;
 let pendingSlideEdit = null; // { isInsert, targetSlide, insertAfter, data }
+let editPromptCache = {}; // per-slide prompt text cache
 
 // ══════════════════════════════════════════════════════════════
 // SECTION 3 — SLIDE STATE HELPERS
@@ -865,6 +866,36 @@ function goToSlide(n) {
 
   document.getElementById('mainScroll').scrollTop = 0;
   updateMainNav();
+
+  // If edit panel is open and we navigated to a different slide, re-open for the new slide
+  if (document.getElementById('editPanel').classList.contains('open') && editTargetSlide !== null && editTargetSlide !== n) {
+    const isEditable = Object.keys(SCHEMAS).includes(SLIDES[n].type);
+    if (isEditable && !SLIDES[n]._hidden) {
+      // Save current prompt text for the old slide
+      editPromptCache[editTargetSlide] = document.getElementById('editPromptArea').value;
+      // Show Toki on old slide, open panel for new slide
+      const oldToki = document.querySelector('#slide-'+editTargetSlide+' .toki-btn');
+      if(oldToki) oldToki.style.display='';
+      editTargetSlide = n;
+      panelOriginalSlide = JSON.parse(JSON.stringify(SLIDES[n]));
+      panelInsertedIdx = null;
+      document.getElementById('epTitle').innerHTML=`<img src="${TOKI_IMG}" alt="Toki" style="width:28px;height:28px;border-radius:50%;flex-shrink:0"> Edit Slide ${n+1}`;
+      // Restore saved prompt or clear
+      document.getElementById('editPromptArea').value = editPromptCache[n] || '';
+      document.getElementById('editStatus').style.display='none';
+      document.getElementById('editGenerateBtn').disabled=false;
+      document.getElementById('editGenerateBtn').textContent='Generate ›';
+      document.getElementById('epBody').style.display='';
+      document.getElementById('epActions').style.display='none';
+      populateHints('edit');
+      const newToki = document.querySelector('#slide-'+n+' .toki-btn');
+      if(newToki) newToki.style.display='none';
+    } else {
+      // Save prompt before closing
+      editPromptCache[editTargetSlide] = document.getElementById('editPromptArea').value;
+      closeEditPanel();
+    }
+  }
 }
 
 function updateMainNav() {
@@ -1273,7 +1304,7 @@ function openEditModal(i) {
   document.getElementById('epTitle').innerHTML=`<img src="${TOKI_IMG}" alt="Toki" style="width:28px;height:28px;border-radius:50%;flex-shrink:0"> Edit Slide ${i+1}`;
   document.getElementById('editPromptLabel').textContent='Describe your change';
   document.getElementById('editPromptArea').placeholder='e.g. Change the practice equation to z − 5 = 12';
-  document.getElementById('editPromptArea').value='';
+  document.getElementById('editPromptArea').value=editPromptCache[i]||'';
   document.getElementById('editStatus').style.display='none';
   document.getElementById('editGenerateBtn').disabled=false;
   document.getElementById('editGenerateBtn').textContent='Generate ›';
@@ -1308,8 +1339,9 @@ function toggleSidebar() {
 }
 
 function closeEditPanel() {
-  // Re-show Toki on the slide that was being edited
+  // Save prompt and re-show Toki on the slide that was being edited
   if(editTargetSlide!==null) {
+    editPromptCache[editTargetSlide] = document.getElementById('editPromptArea').value;
     const toki = document.querySelector('#slide-'+editTargetSlide+' .toki-btn');
     if(toki) toki.style.display='';
   }
@@ -1361,6 +1393,7 @@ async function runSlideGenerate() {
 
 function acceptPanelEdit() {
   document.querySelectorAll('.card.ai-changed').forEach(c=>c.classList.remove('ai-changed'));
+  if(editTargetSlide!==null) delete editPromptCache[editTargetSlide];
   panelOriginalSlide=null; panelInsertedIdx=null;
   closeEditPanel();
 }

@@ -148,7 +148,7 @@ body.show-answers-active .show-answers-banner { display:block; }
 .si-btn.si-hide:hover { background: #f0e8ff; color: #5a007a; }
 .si-btn.si-hide { position:relative; }
 .si-btn.si-hide.is-hidden::after { content:''; position:absolute; top:45%; left:15%; width:70%; height:2px; background:#c0392b; transform:rotate(-45deg); border-radius:1px; }
-.slide-item.hidden-slide { opacity: .45; }
+.slide-item.hidden-slide { opacity: .45; cursor: default; }
 .slide-item.hidden-slide .slide-item-title { text-decoration: line-through; }
 
 /* Insert strip between slides (edit mode) */
@@ -818,7 +818,7 @@ function buildSidebar() {
     const item = document.createElement('div');
     item.className = 'slide-item' + (isActive ? ' active' : '') + (isHidden ? ' hidden-slide' : '');
     item.id = 'si-' + i;
-    item.onclick = () => goToSlide(i);
+    item.onclick = () => { if(!s._hidden) goToSlide(i); };
     item.innerHTML = `
       <div class="slide-item-icon" style="background:${meta.bg};color:${meta.color}">${meta.icon}</div>
       <div class="slide-item-body">
@@ -827,12 +827,12 @@ function buildSidebar() {
         <div class="slide-item-type">${meta.label}</div>
       </div>
       <div class="slide-item-edit">
-        ${i > 0 ? `<button class="si-btn si-move" title="Move up" onclick="event.stopPropagation();moveSlide(${i},-1)">▲</button>` : ''}
-        ${i < SLIDES.length-1 ? `<button class="si-btn si-move" title="Move down" onclick="event.stopPropagation();moveSlide(${i},1)">▼</button>` : ''}
-        ${isEditable ? `<button class="si-btn si-edit" title="Edit with Toki AI" onclick="event.stopPropagation();openEditModal(${i})">✏</button>` : ''}
+        ${!isHidden && i > 0 ? `<button class="si-btn si-move" title="Move up" onclick="event.stopPropagation();moveSlide(${i},-1)">▲</button>` : ''}
+        ${!isHidden && i < SLIDES.length-1 ? `<button class="si-btn si-move" title="Move down" onclick="event.stopPropagation();moveSlide(${i},1)">▼</button>` : ''}
+        ${!isHidden && isEditable ? `<button class="si-btn si-edit" title="Edit with Toki AI" onclick="event.stopPropagation();openEditModal(${i})">✏</button>` : ''}
         <button class="si-btn si-hide ${isHidden?'is-hidden':''}" title="${isHidden?'Show':'Hide'} slide" onclick="event.stopPropagation();toggleHideSlide(${i})">👁</button>
-        ${SLIDES.length > 1 ? `<button class="si-btn si-del" title="Delete slide" onclick="event.stopPropagation();deleteSlide(${i})">🗑</button>` : ''}
-        ${hasUndo ? `<button class="si-btn" title="Revert to original" onclick="event.stopPropagation();undoSlideEdit(${i})" style="color:#e05a2b">↩ Revert</button>` : ''}
+        ${!isHidden && SLIDES.length > 1 ? `<button class="si-btn si-del" title="Delete slide" onclick="event.stopPropagation();deleteSlide(${i})">🗑</button>` : ''}
+        ${!isHidden && hasUndo ? `<button class="si-btn" title="Revert to original" onclick="event.stopPropagation();undoSlideEdit(${i})" style="color:#e05a2b">↩ Revert</button>` : ''}
       </div>
       <div class="slide-item-status">${passed && SLIDE_STATE[i] ? '✅' : ''}</div>
     `;
@@ -993,9 +993,9 @@ function renderSlide(i) {
   const d=SLIDES[i], fn=RENDERERS[d.type]; if(!fn) return;
   const card = document.querySelector('#slide-'+i+' .card');
   card.innerHTML = fn(d,i);
-  // Add Toki AI helper button on editable slides (hide if edit panel is open for this slide)
+  // Add Toki AI helper button on editable, visible slides (hide if edit panel is open for this slide)
   const isEditable = Object.keys(SCHEMAS).includes(d.type);
-  if (isEditable && editTargetSlide !== i) {
+  if (isEditable && editTargetSlide !== i && !d._hidden) {
     const existing = card.querySelector('.toki-btn');
     if (!existing) {
       const btn = document.createElement('button');

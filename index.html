@@ -74,20 +74,21 @@ body.show-answers-active .show-answers-banner { display:block; }
 .sidebar {
   width: 360px; min-width: 360px; background: white;
   border-right: 1px solid #dde8e4; display: flex; flex-direction: column;
-  overflow: hidden; position: relative;
+  overflow: visible; position: relative;
   transition: width .25s ease, min-width .25s ease, padding .25s ease;
 }
 .sidebar.collapsed { width:0; min-width:0; border-right:0; }
 .sidebar.collapsed > * { opacity:0; pointer-events:none; }
 .sidebar-toggle {
-  position:absolute; top:50%; right:-14px; z-index:50;
-  width:28px; height:28px; border-radius:50%; background:white;
-  border:1px solid #dde8e4; box-shadow:0 1px 4px rgba(0,0,0,.1);
+  position:absolute; top:50%; right:-16px; z-index:50;
+  width:30px; height:30px; border-radius:50%; background:white;
+  border:1px solid #dde8e4; box-shadow:0 2px 6px rgba(0,0,0,.15);
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; font-size:.75rem; color:#888; transition:all .15s;
+  cursor:pointer; font-size:.8rem; color:#666; transition:all .15s;
+  transform:translateY(-50%);
 }
 .sidebar-toggle:hover { background:#e6f7f3; color:#00a896; border-color:#00a896; }
-.sidebar.collapsed .sidebar-toggle { right:-14px; }
+.sidebar.collapsed .sidebar-toggle { display:none; }
 /* When collapsed, show toggle on the left edge of main content */
 .sidebar-toggle-collapsed {
   display:none; position:absolute; top:50%; left:0; z-index:50;
@@ -992,9 +993,9 @@ function renderSlide(i) {
   const d=SLIDES[i], fn=RENDERERS[d.type]; if(!fn) return;
   const card = document.querySelector('#slide-'+i+' .card');
   card.innerHTML = fn(d,i);
-  // Add Toki AI helper button on editable slides
+  // Add Toki AI helper button on editable slides (hide if edit panel is open for this slide)
   const isEditable = Object.keys(SCHEMAS).includes(d.type);
-  if (isEditable) {
+  if (isEditable && editTargetSlide !== i) {
     const existing = card.querySelector('.toki-btn');
     if (!existing) {
       const btn = document.createElement('button');
@@ -1280,6 +1281,9 @@ function openEditModal(i) {
   document.getElementById('epActions').style.display='none';
   populateHints('edit');
   document.getElementById('editPanel').classList.add('open');
+  // Hide Toki on this slide since panel is open
+  const toki = document.querySelector('#slide-'+i+' .toki-btn');
+  if(toki) toki.style.display='none';
   goToSlide(i);
 }
 
@@ -1304,6 +1308,11 @@ function toggleSidebar() {
 }
 
 function closeEditPanel() {
+  // Re-show Toki on the slide that was being edited
+  if(editTargetSlide!==null) {
+    const toki = document.querySelector('#slide-'+editTargetSlide+' .toki-btn');
+    if(toki) toki.style.display='';
+  }
   document.getElementById('editPanel').classList.remove('open');
   editTargetSlide=null; editInsertAfter=null;
   panelOriginalSlide=null; panelInsertedIdx=null;

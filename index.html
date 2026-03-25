@@ -1504,7 +1504,7 @@ RULES:
 // SECTION 12 — AI & UTILITIES
 // ══════════════════════════════════════════════════════════════
 async function callGemini(apiKey,sys,usr,onStatus) {
-  const MODELS=['gemini-2.5-flash','gemini-2.5-flash-preview-04-17','gemini-2.5-pro','gemini-2.0-flash','gemini-2.0-flash-lite'];
+  const MODELS=['gemini-2.5-flash','gemini-2.0-flash','gemini-2.5-pro','gemini-2.0-flash-lite'];
   const body={systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:usr}]}],generationConfig:{responseMimeType:'application/json',temperature:0.4,maxOutputTokens:4096}};
   for(const model of MODELS){
     if(onStatus)onStatus('⏳ Trying '+model+'…');
@@ -1512,9 +1512,9 @@ async function callGemini(apiKey,sys,usr,onStatus) {
     let res;
     try{res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
     catch(e){throw new Error('Network error — check your connection.');}
-    if(res.status===404||res.status===403){if(onStatus)onStatus('⏳ '+model+' unavailable, trying next…');continue;}
+    if(res.status===404||res.status===403||res.status===400){if(onStatus)onStatus('⏳ '+model+' unavailable, trying next…');continue;}
     if((res.status===429||res.status===503)&&model!==MODELS[MODELS.length-1]){if(onStatus)onStatus('⏳ '+model+' rate-limited, trying next…');await new Promise(r=>setTimeout(r,2000));continue;}
-    if(!res.ok){const m={400:'Bad request — check your prompt.',429:'Rate limit. Wait 30s.',503:'Service unavailable.'};throw new Error(m[res.status]||'HTTP '+res.status);}
+    if(!res.ok){const m={429:'Rate limit. Wait 30s.',503:'Service unavailable.'};throw new Error(m[res.status]||'HTTP '+res.status);}
     const data=await res.json();
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if(!text)throw new Error('Empty response from Gemini.');
@@ -1534,7 +1534,7 @@ function validateSlide(json) {
   return{data:json};
 }
 
-const DEFAULT_API_KEY='AIzaSyA2-YrOojhcUmropAKcuRuX7dlhruCxLGQ';
+const DEFAULT_API_KEY='AIzaSyAjclSj-s10JtJqXSKVjaLRD6B5TJkyuPo';
 function getApiKey(){return DEFAULT_API_KEY;}
 function saveApiKey(){}
 function syncApiKey(){}

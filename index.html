@@ -1024,9 +1024,9 @@ function renderSlide(i) {
   const d=SLIDES[i], fn=RENDERERS[d.type]; if(!fn) return;
   const card = document.querySelector('#slide-'+i+' .card');
   card.innerHTML = fn(d,i);
-  // Add Toki AI helper button on editable, visible slides (hide if edit panel is open for this slide)
+  // Add Toki AI helper button on editable, visible slides
   const isEditable = Object.keys(SCHEMAS).includes(d.type);
-  if (isEditable && editTargetSlide !== i && !d._hidden) {
+  if (isEditable && !d._hidden) {
     const existing = card.querySelector('.toki-btn');
     if (!existing) {
       const btn = document.createElement('button');
@@ -1034,6 +1034,10 @@ function renderSlide(i) {
       btn.title = 'Edit with Toki AI';
       btn.innerHTML = `<img src="${TOKI_IMG}" alt="Toki" style="width:100%;height:100%;border-radius:50%">`;
       btn.onclick = function(e) { e.stopPropagation(); openEditModal(i); };
+      // Hide if edit panel is currently open for this slide
+      if (editTargetSlide === i && document.getElementById('editPanel').classList.contains('open')) {
+        btn.style.display = 'none';
+      }
       card.appendChild(btn);
     }
   }

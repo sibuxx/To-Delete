@@ -1510,12 +1510,11 @@ RULES:
 // ══════════════════════════════════════════════════════════════
 async function callGemini(apiKey,sys,usr,onStatus) {
   const MODELS=['gemini-2.5-flash','gemini-2.0-flash','gemini-2.5-pro','gemini-2.0-flash-lite'];
-  const body={systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:usr}]}],generationConfig:{responseMimeType:'application/json',temperature:0.4,maxOutputTokens:4096}};
+  const geminiBody={systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:usr}]}],generationConfig:{responseMimeType:'application/json',temperature:0.4,maxOutputTokens:4096}};
   for(const model of MODELS){
     if(onStatus)onStatus('⏳ Trying '+model+'…');
-    const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     let res;
-    try{res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+    try{res=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,body:geminiBody})});}
     catch(e){throw new Error('Network error — check your connection.');}
     if(res.status===404||res.status===403||res.status===400){if(onStatus)onStatus('⏳ '+model+' unavailable, trying next…');continue;}
     if((res.status===429||res.status===503)&&model!==MODELS[MODELS.length-1]){if(onStatus)onStatus('⏳ '+model+' rate-limited, trying next…');await new Promise(r=>setTimeout(r,2000));continue;}
@@ -1539,8 +1538,7 @@ function validateSlide(json) {
   return{data:json};
 }
 
-const DEFAULT_API_KEY='AIzaSyAjclSj-s10JtJqXSKVjaLRD6B5TJkyuPo';
-function getApiKey(){return DEFAULT_API_KEY;}
+function getApiKey(){return 'server-proxy';}
 function saveApiKey(){}
 function syncApiKey(){}
 function showModalStatus(p,msg,type){const el=document.getElementById(p==='nl'?'nlStatus':'editStatus');el.textContent=msg;el.className='modal-status'+(type?' '+type:'');el.style.display='block';}

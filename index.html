@@ -1512,9 +1512,9 @@ async function callGemini(apiKey,sys,usr,onStatus) {
     let res;
     try{res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
     catch(e){throw new Error('Network error — check your connection.');}
-    if(res.status===404)continue;
-    if((res.status===429||res.status===503)&&model!==MODELS[MODELS.length-1]){if(onStatus)onStatus('⏳ '+model+' rate-limited, trying next…');await new Promise(r=>setTimeout(r,5000));continue;}
-    if(!res.ok){const m={400:'Bad request — check your prompt.',403:'Invalid API key.',429:'Rate limit. Wait 30s.',503:'Service unavailable.'};throw new Error(m[res.status]||'HTTP '+res.status);}
+    if(res.status===404||res.status===403){if(onStatus)onStatus('⏳ '+model+' unavailable, trying next…');continue;}
+    if((res.status===429||res.status===503)&&model!==MODELS[MODELS.length-1]){if(onStatus)onStatus('⏳ '+model+' rate-limited, trying next…');await new Promise(r=>setTimeout(r,2000));continue;}
+    if(!res.ok){const m={400:'Bad request — check your prompt.',429:'Rate limit. Wait 30s.',503:'Service unavailable.'};throw new Error(m[res.status]||'HTTP '+res.status);}
     const data=await res.json();
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if(!text)throw new Error('Empty response from Gemini.');
